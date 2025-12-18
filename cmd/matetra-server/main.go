@@ -12,21 +12,19 @@ import (
 
 func main() {
 	cmd := os.Args
-
 	if len(cmd) == 1 {
-		utils.MatetraSplash()
+		clientSplash()
 		return
 	}
 
 	switch cmd[1] {
 	case "start":
-		if len(cmd) < 3 {
-			fmt.Println("please provide a title for the game.")
-			fmt.Println("(ex: matetra-server start WonderfulGame) ")
-			return
+		title := "Wonderful Game"
+		if len(cmd) > 2 {
+			title = cmd[2]
 		}
 		utils.MatetraSplash()
-		game := engine.New(cmd[2])
+		game := engine.New(title)
 		log.Printf("loading card deck...")
 		game.LoadCards()
 		log.Printf("deck loaded with %d cards", len(game.State.Cards))
@@ -34,10 +32,14 @@ func main() {
 		apiServer := api.New(game)
 		apiServer.Start()
 	default:
-		utils.MatetraSplash()
 		fmt.Println(cmd[1] + " not recognised.")
-		fmt.Println("to start a game:")
-		fmt.Println("	matetra-server start <game-title>")
-		fmt.Println(" ex: matetra-server start WonderfulGame")
+		clientSplash()
 	}
+}
+
+func clientSplash() {
+	utils.MatetraSplash()
+	fmt.Println("to start a game:")
+	fmt.Println("	matetra-server start <game-title>")
+	fmt.Println(" ex: matetra-server start WonderfulGame")
 }
