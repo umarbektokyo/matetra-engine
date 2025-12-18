@@ -18,15 +18,22 @@ git clone https://github.com/umarbektokyo/matetra-engine
 cd matetra-engine
 
 # For the client
-go install .cmd/matetra-client
+cd cmd/matetra-client
+go install
+
+## Return to root
+cd ../..
+
 # For the server
-go install .cmd/matetra-server
+cd cmd/matetra-server
+go install
 ```
 # Running
 ```bash
 # For the client
 matetra-client "ip-address":1729
 # ex: matetra-client localhost:1729
+
 # For the server
 matetra-server start "game-name"
 # ex: matetra-server start WonderfulGame
