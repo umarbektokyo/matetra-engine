@@ -1,0 +1,49 @@
+Name,SVG,Description,Type,Method,InputsReq,Count,Pack,Precedence
+Addition,a+b,,Function,ADD,AnUn,4,Core0,5
+Subtraction,a-b,,Function,SUBTRACT,AnUn,4,Core0,5
+Multiplication,a*b,,Function,MULTIPLY,AnUn,4,Core0,5
+Division,a/b,,Function,DIVIDE,AnUn,4,Core0,5
+Absolute Value,|a|,,Function,ABSOLUTEVALUE,An,2,Core1,5
+Inverse,1/a,,Function,INVERSE,An,2,Core1,5
+Negative,-a,,Function,NEGATIVE,An,2,Core1,5
+Positive,+a,,Function,POSITIVE,An,2,Core1,5
+Square Root,sqrt[a],,Function,SQRT,An,1,Core3,5
+Factorial,d!,,Constant,FACTORIAL,,1,Core3,5
+Square,a^2,,Function,SQUARE,An,1,Core3,5
+Cosine,a[cos(d)],,Function,COSMOD,An,1,Core3,5
+Base-10 Logarithm,log_10[a],,Function,LOG10,An,1,Core3,5
+Exponential,e^a,,Function,EXPONENTIAL,An,1,Core3,5
+Natural Logarithm,ln(a),,Function,NATLOG,An,1,Core3,5
+Sine,a[sin(d)],,Function,SINMOD,An,1,Core3,5
+Tangent,a[tan(d)],,Function,TANMOD,An,1,Core3,5
+Logarithm,log_d[a],,Function,LOGORHYTHM,An,1,Core3,5
+Base-Root,a^(1/d),,Function,ROOTBASE,An,1,Core3,5
+Power,a^d,,Function,EXPONENTBASE,An,1,Core3,5
+Summation,sigma{},,Function,SIGMANOTATION,A,1,Core3,5
+Product,product{},,Function,PRODUCTNOTATION,A,1,Core3,5
+Second Order Polynomial,ad^2+bd+c,,Function,POLYNOMIAL2,AnUnUn,1,Core3,5
+First Order Polynomial,ad+b,,Function,POLYNOMIAL1,AnUn,1,Core3,5
+Identity Element,,Add 0 (zero) or multiply by 1.,Theorem,ELEMENTIDENTITY,An,1,Core,5
+Closure Element,,Make one number immune from cards for one turn.,Theorem,ELEMENTCLOSURE,An,1,Core,5
+Distributive Element,,Select a number on the table and dublicate it into every player's set.,Theorem,ELEMENTDISTRIBUTIVE,An,1,Core,5
+Commutative Element,,Swap any two numbers on the table,Theorem,ELEMENTCOMMUTATIVE,AnAn,1,Core,5
+Pascal's Triangle,,"Choose two adjacent numbers and replace them with their sum [recursive, you can perform as many times as you want.]",Theorem,PASCALTRIANGLE,An,1,Core,5
+Pythagorean Theorem,sqrt[a^2+b^2],,Theorem,PYTHAGOREANTHEOREM,AnUn,1,Core,5
+Fundamental Theorem of Arithmetic,,Replace the number with its prime decomposition set.,Theorem,FUNDAMENTALTHEOREMOFARITHMETIC,An,1,Core,5
+Euler's Number,e \approx 2.72,,Constant,CONSTE,,1,Core,5
+Negative,-1,,Constant,CONSTN1,,1,Core,5
+Sheldon's Number,73,"The best number. Is this 73? Nah, check if 73 is in your set, if yes: use this as 73; if no: use this as 12.",Constant,CONST73,,1,Core,5
+Googol,10,Just 10 or search for a number on the table which is integer power of 10 and take one into your own set.,Constant,CONSTGOOGLE,An,1,Core,5
+The Answer,42,What else do you think the meaning of the universe is?,Constant,CONST42,,1,Core,5
+Phi,\phi \approx 1.62,,Constant,CONSTPHI,,1,Core,5
+Zero,0,Zero,Constant,CONSTZERO,,1,Core,5
+Pi,\pi \approx 3.14,,Constant,CONSTPI,,1,Core,5
+Lucky Number,7,"Roll the dice 2 times, if the sum is 7, add another 7 to the set.",Constant,CONST7,,1,Core,5
+2nd Perfect Number,28,You're even more perfect!,Constant,CONST26,,1,Core,5
+1st Perfect Number,6,You're perfect!,Constant,CONST6,,1,Core,5
+Fibonacci Number,F,"Every turn it is on the table without being used, it increases into the next Fibonacci number in the sequence. Starts from 1, stops once it's used or attacked.",Constant,CONSTFIBONACCI,,1,Core,5
+Symmetrical Number,69,Uhm... it is divisible by 3?,Constant,CONST69,,1,Core,5
+Tau,\tau \approx 6.28,,Constant,CONSTTAU,,1,Core,5
+Scientific Notation,10^d,,Constant,CONSTTENPOWER,,1,Core,5
+Graham's number,,"It's too big, just replace it with 9.",Constant,CONSTGRAHAM,,1,Core,5
+Cupid's Number,29,"Roll the dice twice. If and only if both dice are three or less, the constant is 29. Otherwise it is 14.",Constant,CONSTCUPID,,1,Core,5
