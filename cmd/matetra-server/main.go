@@ -22,7 +22,7 @@ func main() {
 	case "start":
 		if len(cmd) < 3 {
 			fmt.Println("please provide a title for the game.")
-			fmt.Println("(ex: matetra start wonderful-game) ")
+			fmt.Println("(ex: matetra-server start WonderfulGame) ")
 			return
 		}
 		utils.MatetraSplash()
@@ -37,6 +37,7 @@ func main() {
 		utils.MatetraSplash()
 		fmt.Println(cmd[1] + " not recognised.")
 		fmt.Println("to start a game:")
-		fmt.Println("	matetra start wonderful-game feda)")
+		fmt.Println("	matetra-server start <game-title>")
+		fmt.Println(" ex: matetra-server start WonderfulGame")
 	}
 }

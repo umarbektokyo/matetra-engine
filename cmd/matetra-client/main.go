@@ -40,8 +40,8 @@ func main() {
 	loadBanner()
 
 	if len(cmd) < 2 {
-		fmt.Println("usage: go run matetra <server-address>")
-		fmt.Println("example: go run matetra localhost:1729")
+		fmt.Println("usage: matetra-client <server-address>:1729")
+		fmt.Println("example: matetra-client localhost:1729")
 		return
 	}
 

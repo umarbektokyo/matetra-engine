@@ -31,11 +31,11 @@ go install
 # Running
 ```bash
 # For the client
-matetra-client "ip-address":1729
+matetra-client <server-address>:1729
 # ex: matetra-client localhost:1729
 
 # For the server
-matetra-server start "game-name"
+matetra-server start <game-title>
 # ex: matetra-server start WonderfulGame
 ```
 
