@@ -4,10 +4,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"math/big"
 	"math/rand"
-	"os"
 	"time"
 
 	"github.com/umarbektokyo/matetra-engine/model"
@@ -15,8 +13,16 @@ import (
 
 var VERSION = "0.1"
 var PORT int = 1729
-var DECK_PATH string = "cards/cards.csv"
 var r *rand.Rand
+var ascii string = `
+                         $$\                $$\                        
+                         $$ |               $$ |                       
+$$$$$$\$$$$\   $$$$$$\ $$$$$$\    $$$$$$\ $$$$$$\    $$$$$$\  $$$$$$\  
+$$  _$$  _$$\  \____$$\\_$$  _|  $$  __$$\\_$$  _|  $$  __$$\ \____$$\ 
+$$ / $$ / $$ | $$$$$$$ | $$ |    $$$$$$$$ | $$ |    $$ |  \__|$$$$$$$ |
+$$ | $$ | $$ |$$  __$$ | $$ |$$\ $$   ____| $$ |$$\ $$ |     $$  __$$ |
+$$ | $$ | $$ |\$$$$$$$ | \$$$$  |\$$$$$$$\  \$$$$  |$$ |     \$$$$$$$ |
+\__| \__| \__| \_______|  \____/  \_______|  \____/ \__|      \_______|`
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -35,12 +41,7 @@ func Hash(s string) string {
 }
 
 func MatetraSplash() {
-	content, err := os.ReadFile("ascii.txt")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(string(content))
+	fmt.Println(ascii)
 }
 
 func ValidateInputs(vgs *model.GameState, card *model.Card) error {

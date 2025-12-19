@@ -14,20 +14,12 @@ $$ | $$ | $$ |\$$$$$$$ | \$$$$  |\$$$$$$$\  \$$$$  |$$ |     \$$$$$$$ |
 
 # Installation
 ```bash
-git clone https://github.com/umarbektokyo/matetra-engine
-cd matetra-engine
-
 # For the client
-cd cmd/matetra-client
-go install
-
-## Return to root
-cd ../..
-
+go install github.com/umarbektokyo/matetra-engine/cmd/matetra-client@latest
 # For the server
-cd cmd/matetra-server
-go install
+go install github.com/umarbektokyo/matetra-engine/cmd/matetra-server@latest
 ```
+> WARNING: Ensure you have `$GOPATH/bin` in `PATH`
 # Running
 ```bash
 # For the client

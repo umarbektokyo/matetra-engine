@@ -1,9 +1,10 @@
 package cards
 
 import (
+	"bytes"
+	_ "embed"
 	"encoding/csv"
 	"fmt"
-	"os"
 	"strconv"
 
 	"github.com/umarbektokyo/matetra-engine/cards/constants"
@@ -13,16 +14,18 @@ import (
 	"github.com/umarbektokyo/matetra-engine/utils"
 )
 
-// Loads cards from csv file
-func LoadCardsFromCSV(path string) ([]model.Card, error) {
-	// Open the file
-	file := utils.Must(os.Open(path))
-	defer file.Close()
+//go:embed cards.csv
+var CardsCSV []byte
 
-	// Read through the file and clean the data
-	reader := csv.NewReader(file)
+// Loads cards from embedded csv
+func LoadCards() ([]model.Card, error) {
+	// Read through the data and clean it
+	reader := csv.NewReader(bytes.NewReader(CardsCSV))
 	reader.TrimLeadingSpace = true
-	records := utils.Must(reader.ReadAll())
+	records, err := reader.ReadAll()
+	if err != nil {
+		return nil, err
+	}
 	records = records[1:]
 
 	// Start recording the cards

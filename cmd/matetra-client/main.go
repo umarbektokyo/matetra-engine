@@ -23,21 +23,11 @@ var PlayerID int = -1
 var PlayerName string
 var Banner string
 
-func loadBanner() {
-	content, err := os.ReadFile("ascii.txt")
-	if err == nil {
-		Banner = string(content)
-	} else {
-		// Fallback if file not found, or just empty
-		Banner = "MATETRA"
-	}
-}
-
 func main() {
 	log.SetFlags(0)
 
 	cmd := os.Args
-	loadBanner()
+	utils.MatetraSplash()
 
 	if len(cmd) < 2 {
 		fmt.Println("usage: matetra-client <server-address>:1729")

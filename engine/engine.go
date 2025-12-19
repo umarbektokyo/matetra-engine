@@ -79,7 +79,7 @@ func (g *Game) LoadCards() {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	deck := utils.Must(cards.LoadCardsFromCSV(utils.DECK_PATH))
+	deck := utils.Must(cards.LoadCards())
 	g.State.Cards = append(g.State.Cards, deck...)
 }
 
