@@ -46,6 +46,24 @@ a → the “main number”, if attacking, this is where the attacked number goe
 b,c,… → You can only use your own numbers from the set, they will be deleted once used.
 u → call umarbek and ask to generate a random number.]
 
+Commands:
+apply(cardIndex, [inputs...], permanent)  - Play a card (permanent=1, preview=0), (inputs are signified by a card)
+roll / dice                               - Roll the dice
+turnend                                   - End your turn
+state                                     - Refresh board
+help                                      - Show help
+exit                                      - Quit
+
+Sample Game:
+- You play dice() few times to get few numbers into your set.
+- Everybody plays "turnend()"
+- You repeat this until it is the turn of the first player.
+- You apply an addition on your numbers 1 and 2 using "apply(1, 0, 0, 0, 1, 1)"
+- Your friend applies a square root on your first number using "apply(43, 0, 1, 1)"
+- "other moves"
+- When everybody is finished, move "turnend()"
+- Now you attack the next player, and that player defends.
+
 # Welcome the crew!
 - Flush! - Esia
 - Noga L.
