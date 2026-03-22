@@ -1324,7 +1324,15 @@ func (m *M) txPlay(ci int, inputs []int) {
 
 func (m M) doAuth(user, pass string) tea.Cmd {
 	return func() tea.Msg {
-		u := m.addr; if !strings.HasPrefix(u, "http") { u = "http://" + u }
+		u := m.addr
+		if !strings.HasPrefix(u, "http") {
+			// Use HTTPS for non-localhost addresses (e.g. behind Cloudflare)
+			if strings.HasPrefix(u, "localhost") || strings.HasPrefix(u, "127.0.0.1") || strings.HasPrefix(u, "[::1]") {
+				u = "http://" + u
+			} else {
+				u = "https://" + u
+			}
+		}
 		body, _ := json.Marshal(map[string]string{"name": user, "password": pass})
 		resp, err := http.Post(u+"/auth", "application/json", bytes.NewReader(body))
 		if err != nil { return wsErrMsg{fmt.Errorf("auth: %v", err)} }
@@ -1336,7 +1344,8 @@ func (m M) doAuth(user, pass string) tea.Cmd {
 		var ar struct{ Token string `json:"token"` }
 		json.NewDecoder(resp.Body).Decode(&ar)
 
-		wu := strings.Replace(u, "http", "ws", 1)
+		wu := strings.Replace(u, "https://", "wss://", 1)
+		wu = strings.Replace(wu, "http://", "ws://", 1)
 		pu, _ := url.Parse(wu); pu.Path = "/ws"
 		q := pu.Query(); q.Set("token", ar.Token); pu.RawQuery = q.Encode()
 		conn, _, err := websocket.DefaultDialer.Dial(pu.String(), nil)
