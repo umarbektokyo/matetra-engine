@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -1336,10 +1337,14 @@ func (m M) doAuth(user, pass string) tea.Cmd {
 		body, _ := json.Marshal(map[string]string{"name": user, "password": pass})
 		req, _ := http.NewRequest(http.MethodPost, u+"/auth", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
+		req.GetBody = func() (io.ReadCloser, error) {
+			return io.NopCloser(bytes.NewReader(body)), nil
+		}
 		client := &http.Client{
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				req.Method = http.MethodPost
-				req.Body, _ = via[0].GetBody()
+			CheckRedirect: func(r *http.Request, via []*http.Request) error {
+				r.Method = http.MethodPost
+				r.Header.Set("Content-Type", "application/json")
+				r.Body = io.NopCloser(bytes.NewReader(body))
 				return nil
 			},
 		}
