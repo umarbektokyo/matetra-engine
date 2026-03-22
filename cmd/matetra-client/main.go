@@ -1334,7 +1334,16 @@ func (m M) doAuth(user, pass string) tea.Cmd {
 			}
 		}
 		body, _ := json.Marshal(map[string]string{"name": user, "password": pass})
-		resp, err := http.Post(u+"/auth", "application/json", bytes.NewReader(body))
+		req, _ := http.NewRequest(http.MethodPost, u+"/auth", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		client := &http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				req.Method = http.MethodPost
+				req.Body, _ = via[0].GetBody()
+				return nil
+			},
+		}
+		resp, err := client.Do(req)
 		if err != nil { return wsErrMsg{fmt.Errorf("auth: %v", err)} }
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
