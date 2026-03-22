@@ -1,49 +1,49 @@
 Name,SVG,Description,Type,Method,InputsReq,Count,Pack,Precedence
-Addition,a+b,,Function,ADD,AnUn,4,Core0,5
-Subtraction,a-b,,Function,SUBTRACT,AnUn,4,Core0,5
-Multiplication,a*b,,Function,MULTIPLY,AnUn,4,Core0,5
-Division,a/b,,Function,DIVIDE,AnUn,4,Core0,5
-Absolute Value,|a|,,Function,ABSOLUTEVALUE,An,2,Core1,5
-Inverse,1/a,,Function,INVERSE,An,2,Core1,5
-Negative,-a,,Function,NEGATIVE,An,2,Core1,5
-Positive,+a,,Function,POSITIVE,An,2,Core1,5
-Square Root,sqrt[a],,Function,SQRT,An,1,Core3,5
-Factorial,d!,,Constant,FACTORIAL,,1,Core3,5
-Square,a^2,,Function,SQUARE,An,1,Core3,5
-Cosine,a[cos(d)],,Function,COSMOD,An,1,Core3,5
-Base-10 Logarithm,log_10[a],,Function,LOG10,An,1,Core3,5
-Exponential,e^a,,Function,EXPONENTIAL,An,1,Core3,5
-Natural Logarithm,ln(a),,Function,NATLOG,An,1,Core3,5
-Sine,a[sin(d)],,Function,SINMOD,An,1,Core3,5
-Tangent,a[tan(d)],,Function,TANMOD,An,1,Core3,5
-Logarithm,log_d[a],,Function,LOGORHYTHM,An,1,Core3,5
-Base-Root,a^(1/d),,Function,ROOTBASE,An,1,Core3,5
-Power,a^d,,Function,EXPONENTBASE,An,1,Core3,5
-Summation,sigma{},,Function,SIGMANOTATION,A,1,Core3,5
-Product,product{},,Function,PRODUCTNOTATION,A,1,Core3,5
-Second Order Polynomial,ad^2+bd+c,,Function,POLYNOMIAL2,AnUnUn,1,Core3,5
-First Order Polynomial,ad+b,,Function,POLYNOMIAL1,AnUn,1,Core3,5
-Identity Element,,Add 0 (zero) or multiply by 1.,Theorem,ELEMENTIDENTITY,An,1,Core,5
-Closure Element,,Make one number immune from cards for one turn.,Theorem,ELEMENTCLOSURE,An,1,Core,5
-Distributive Element,,Select a number on the table and dublicate it into every player's set.,Theorem,ELEMENTDISTRIBUTIVE,An,1,Core,5
-Commutative Element,,Swap any two numbers on the table,Theorem,ELEMENTCOMMUTATIVE,AnAn,1,Core,5
-Pascal's Triangle,,"Choose two adjacent numbers and replace them with their sum [recursive, you can perform as many times as you want.]",Theorem,PASCALTRIANGLE,An,1,Core,5
-Pythagorean Theorem,sqrt[a^2+b^2],,Theorem,PYTHAGOREANTHEOREM,AnUn,1,Core,5
-Fundamental Theorem of Arithmetic,,Replace the number with its prime decomposition set.,Theorem,FUNDAMENTALTHEOREMOFARITHMETIC,An,1,Core,5
-Euler's Number,e \approx 2.72,,Constant,CONSTE,,1,Core,5
-Negative,-1,,Constant,CONSTN1,,1,Core,5
-Sheldon's Number,73,"The best number. Is this 73? Nah, check if 73 is in your set, if yes: use this as 73; if no: use this as 12.",Constant,CONST73,,1,Core,5
-Googol,10,Just 10 or search for a number on the table which is integer power of 10 and take one into your own set.,Constant,CONSTGOOGLE,An,1,Core,5
-The Answer,42,What else do you think the meaning of the universe is?,Constant,CONST42,,1,Core,5
-Phi,\phi \approx 1.62,,Constant,CONSTPHI,,1,Core,5
-Zero,0,Zero,Constant,CONSTZERO,,1,Core,5
-Pi,\pi \approx 3.14,,Constant,CONSTPI,,1,Core,5
-Lucky Number,7,"Roll the dice 2 times, if the sum is 7, add another 7 to the set.",Constant,CONST7,,1,Core,5
-2nd Perfect Number,28,You're even more perfect!,Constant,CONST26,,1,Core,5
-1st Perfect Number,6,You're perfect!,Constant,CONST6,,1,Core,5
-Fibonacci Number,F,"Every turn it is on the table without being used, it increases into the next Fibonacci number in the sequence. Starts from 1, stops once it's used or attacked.",Constant,CONSTFIBONACCI,,1,Core,5
-Symmetrical Number,69,Uhm... it is divisible by 3?,Constant,CONST69,,1,Core,5
-Tau,\tau \approx 6.28,,Constant,CONSTTAU,,1,Core,5
-Scientific Notation,10^d,,Constant,CONSTTENPOWER,,1,Core,5
-Graham's number,,"It's too big, just replace it with 9.",Constant,CONSTGRAHAM,,1,Core,5
-Cupid's Number,29,"Roll the dice twice. If and only if both dice are three or less, the constant is 29. Otherwise it is 14.",Constant,CONSTCUPID,,1,Core,5
+Addition,a+b,Add two numbers together. The target number gains the value of the source number and the source number is consumed.,Function,ADD,AnUn,4,Core0,5
+Subtraction,a-b,Subtract the source number from the target. The source number is consumed.,Function,SUBTRACT,AnUn,4,Core0,5
+Multiplication,a*b,Multiply the target number by the source. The source number is consumed.,Function,MULTIPLY,AnUn,4,Core0,5
+Division,a/b,Divide the target number by the source. The source number is consumed. Cannot divide by zero.,Function,DIVIDE,AnUn,4,Core0,5
+Absolute Value,|a|,Take the absolute value of a number. Negative becomes positive.,Function,ABSOLUTEVALUE,An,2,Core1,5
+Inverse,1/a,Replace a number with its reciprocal (1/x). Cannot invert zero.,Function,INVERSE,An,2,Core1,5
+Negative,-a,Flip the sign of a number. Positive becomes negative and vice versa.,Function,NEGATIVE,An,2,Core1,5
+Positive,+a,Does nothing. A philosophical statement about the nature of positivity.,Function,POSITIVE,An,2,Core1,5
+Square Root,sqrt[a],Take the square root of a number. Cannot be used on negative numbers.,Function,SQRT,An,1,Core3,5
+Factorial,d!,Roll a die and place d! (factorial of the dice value) into your set.,Constant,FACTORIAL,d,1,Core3,5
+Square,a^2,Square a number (multiply it by itself).,Function,SQUARE,An,1,Core3,5
+Cosine,a*cos(d),Multiply a number by the cosine of a dice roll (in radians).,Function,COSMOD,And,1,Core3,5
+Base-10 Logarithm,log_10[a],Replace a number with its base-10 logarithm. Must be positive.,Function,LOG10,An,1,Core3,5
+Exponential,e^a,Replace a number with e raised to its power.,Function,EXPONENTIAL,An,1,Core3,5
+Natural Logarithm,ln(a),Replace a number with its natural logarithm. Must be positive.,Function,NATLOG,An,1,Core3,5
+Sine,a*sin(d),Multiply a number by the sine of a dice roll (in radians).,Function,SINMOD,And,1,Core3,5
+Tangent,a*tan(d),Multiply a number by the tangent of a dice roll (in radians).,Function,TANMOD,And,1,Core3,5
+Logarithm,log_d[a],Replace a number with its logarithm in base d (dice roll). Must be positive.,Function,LOGORHYTHM,And,1,Core3,5
+Base-Root,a^(1/d),Take the d-th root of a number (dice determines the root). Must be positive.,Function,ROOTBASE,And,1,Core3,5
+Power,a^d,Raise a number to the power of a dice roll.,Function,EXPONENTBASE,And,1,Core3,5
+Summation,sigma{},Sum ALL numbers in a player's set into one slot. The rest become empty.,Function,SIGMANOTATION,A,1,Core3,5
+Product,product{},Multiply ALL numbers in a player's set into one slot. The rest become empty.,Function,PRODUCTNOTATION,A,1,Core3,5
+Second Order Polynomial,ad^2+bd+c,Compute a*d^2 + b*d + c where d is a dice roll. Consumes b and c.,Function,POLYNOMIAL2,AnUnUnd,1,Core3,5
+First Order Polynomial,ad+b,Compute a*d + b where d is a dice roll. Consumes b.,Function,POLYNOMIAL1,AnUnd,1,Core3,5
+Identity Element,,Add 0 or multiply by 1. A reminder that some operations change nothing.,Theorem,ELEMENTIDENTITY,An,1,Core,5
+Closure Element,,Make one number immune from all cards for one turn. Protection!,Theorem,ELEMENTCLOSURE,An,1,Core,5
+Distributive Element,,Select a number and duplicate it into every other player's set.,Theorem,ELEMENTDISTRIBUTIVE,An,1,Core,5
+Commutative Element,,Swap any two numbers on the table between any players.,Theorem,ELEMENTCOMMUTATIVE,AnAn,1,Core,5
+Pascal's Triangle,,"Choose a number and collapse its contiguous group (island) into their sum. Adjacent non-empty numbers merge.",Theorem,PASCALTRIANGLE,An,1,Core,5
+Pythagorean Theorem,sqrt[a^2+b^2],Compute the hypotenuse of two numbers. The source is consumed.,Theorem,PYTHAGOREANTHEOREM,AnUn,1,Core,5
+Fundamental Theorem of Arithmetic,,Decompose an integer into its prime factors. Each factor fills a slot.,Theorem,FUNDAMENTALTHEOREMOFARITHMETIC,An,1,Core,5
+Euler's Number,e ~= 2.72,Place Euler's number (e ~= 2.718) into your set.,Constant,CONSTE,,1,Core,5
+Negative One,-1,Place -1 into your set. Small but mighty.,Constant,CONSTN1,,1,Core,5
+Sheldon's Number,73,The best number! If 73 is already in your set you get 73; otherwise you get 12.,Constant,CONST73,,1,Core,5
+Googol,10,Place 10 into your set OR steal a power-of-10 number from the table.,Constant,CONSTGOOGLE,An,1,Core,5
+The Answer,42,The answer to life the universe and everything. Place 42 into your set.,Constant,CONST42,,1,Core,5
+Phi,phi ~= 1.62,Place the golden ratio (phi ~= 1.618) into your set.,Constant,CONSTPHI,,1,Core,5
+Zero,0,Place 0 into your set. It's nothing but it's honest work.,Constant,CONSTZERO,,1,Core,5
+Pi,pi ~= 3.14,Place pi (~= 3.14159) into your set.,Constant,CONSTPI,,1,Core,5
+Lucky Number,7,Place 7 into your set. Roll two dice: if they sum to 7 you get another 7!,Constant,CONST7,dd,1,Core,5
+2nd Perfect Number,28,Place 28 into your set. The second perfect number (1+2+4+7+14=28).,Constant,CONST28,,1,Core,5
+1st Perfect Number,6,Place 6 into your set. The first perfect number (1+2+3=6).,Constant,CONST6,,1,Core,5
+Fibonacci Number,F,Starts at 1 and grows to the next Fibonacci number each turn it stays on the table untouched.,Constant,CONSTFIBONACCI,,1,Core,5
+Symmetrical Number,69,Place 69 into your set. It's symmetrical... and divisible by 3.,Constant,CONST69,,1,Core,5
+Tau,tau ~= 6.28,Place tau (2*pi ~= 6.283) into your set.,Constant,CONSTTAU,,1,Core,5
+Scientific Notation,10^d,Roll a die and place 10^d into your set.,Constant,CONSTTENPOWER,d,1,Core,5
+Graham's Number,,It's incomprehensibly large. So large we just give you 9 instead.,Constant,CONSTGRAHAM,,1,Core,5
+Cupid's Number,29 or 14,Roll two dice. If both are 3 or less you get 29 (love!). Otherwise you get 14.,Constant,CONSTCUPID,dd,1,Core,5

@@ -2,299 +2,217 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
-	"sync"
-
-	"github.com/umarbektokyo/matetra-engine/engine"
-	"github.com/umarbektokyo/matetra-engine/model"
 
 	"github.com/gorilla/websocket"
 )
 
 type Message struct {
 	Type    string      `json:"type"`
-	Payload interface{} `json:"payload"`
+	Payload any `json:"payload"`
 }
 
-type PlayerPayload struct {
-	Name string `json:"name"`
-	Hash string `json:"hash"`
+type AuthPayload struct {
+	Name     string `json:"name"`
+	Password string `json:"password"`
+}
+
+type AuthResponse struct {
+	Token string `json:"token"`
+	Name  string `json:"name"`
+}
+
+type CreateRoomPayload struct {
+	WinCondition int `json:"winCondition"` // 0=limit, 1=largest, 2=smallest
+	TurnLimit    int `json:"turnLimit"`
+	HandSize     int `json:"handSize"`
+}
+
+type JoinPayload struct {
+	Code string `json:"code"`
 }
 
 type CardPlayPayload struct {
-	CardIndex int   `json:"card_index"`
+	CardIndex int   `json:"cardIndex"`
 	Inputs    []int `json:"inputs"`
 	Permanent bool  `json:"permanent"`
 }
 
+type DiceRollPayload struct {
+	Values []int `json:"values"` // dice values from client
+	Single bool  `json:"single"` // true = fill one slot, false = fill all
+}
+
 type CardPlayReply struct {
-	Success      bool             `json:"success"`
-	Message      string           `json:"message"`
-	NewGameState *model.GameState `json:"newGameState,omitempty"`
+	Success bool   `json:"success"`
+	Message string `json:"message"`
 }
 
-type PlayerConnection struct {
-	conn     *websocket.Conn
-	mu       sync.Mutex
-	PlayerID int
-}
-
-type API struct {
-	Game        *engine.Game
-	Connections map[int]*PlayerConnection
-	nextConnID  int
-}
-
-func New(game *engine.Game) *API {
-	return &API{
-		Game:        game,
-		Connections: make(map[int]*PlayerConnection),
-	}
-}
-
-// websocket upgrader
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
+	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
-// starts the server + endpoints
-func (a *API) Start() {
-	http.HandleFunc("/ws", a.handleWebSocket)
+func Start(hub *Hub, port string) {
+	http.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
+		handleAuth(w, r, hub)
+	})
+	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		handleWS(w, r, hub)
+	})
 
-	log.Println("API running on :1729")
-	log.Fatal(http.ListenAndServe(":1729", nil))
+	log.Printf("matetra server running on :%s", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
-func (a *API) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+func handleAuth(w http.ResponseWriter, r *http.Request, hub *Hub) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var payload AuthPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if payload.Name == "" || payload.Password == "" {
+		http.Error(w, "name and password required", http.StatusBadRequest)
+		return
+	}
+
+	token, err := hub.Users.Register(payload.Name, payload.Password)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(AuthResponse{Token: token, Name: payload.Name})
+}
+
+func handleWS(w http.ResponseWriter, r *http.Request, hub *Hub) {
+	// Extract JWT from query param or Authorization header
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		auth := r.Header.Get("Authorization")
+		if len(auth) > 7 && auth[:7] == "Bearer " {
+			token = auth[7:]
+		}
+	}
+
+	if token == "" {
+		http.Error(w, "authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	username, err := validateJWT(token)
+	if err != nil {
+		http.Error(w, "invalid token: "+err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Get user hash for game operations
+	hash, ok := hub.Users.GetHash(username)
+	if !ok {
+		http.Error(w, "user not found", http.StatusUnauthorized)
+		return
+	}
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("failed to upgrade connection: %v", err)
+		log.Printf("upgrade failed: %v", err)
 		return
 	}
 
-	playerConn := &PlayerConnection{conn: conn, PlayerID: -1}
-	connID := a.nextConnID
-	a.Connections[connID] = playerConn
-	a.nextConnID++
+	log.Printf("WebSocket connected: @%s", username)
 
-	log.Printf("client %d connected", connID)
-
-	go a.readMessages(connID, playerConn)
-}
-
-func (a *API) readMessages(connID int, pc *PlayerConnection) {
-	defer func() {
-		pc.conn.Close()
-		log.Printf("client %d disconnected", connID)
-	}()
-
-	for {
-		var incomingMsg Message
-		if err := pc.conn.ReadJSON(&incomingMsg); err != nil {
-			if websocket.IsCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
-				return
-			}
-			log.Printf("read error for client %d, %v", connID, err)
-			return
-		}
-		a.handleIncomingMessages(pc, incomingMsg)
-	}
-}
-
-func (a *API) handleIncomingMessages(pc *PlayerConnection, msg Message) {
-	switch msg.Type {
-	case "ADD_PLAYER":
-		var payload PlayerPayload
-		payloadBytes, err := json.Marshal(msg.Payload)
-		if err != nil {
-			log.Printf("error marshalling payload: %v", err)
-		}
-		if err := json.Unmarshal(payloadBytes, &payload); err != nil {
-			a.sendError(pc, "invalid player payload format")
-			return
-		}
-
-		playerID, err := a.Game.AddPlayer(payload.Name, payload.Hash)
-		if err != nil {
-			a.sendError(pc, err.Error())
-			return
-		}
-
-		pc.PlayerID = playerID
-
-		a.sendResponse(pc, "PLAYER_ADDED", map[string]string{"name": payload.Name})
-		a.BroadcastState()
-	case "PLAY_CARD":
-		a.handlePlayCard(pc, msg.Payload)
-	case "PROCESS_NEXT_TURN":
-		a.handleNextTurn(pc)
-	case "ROLL_DICE":
-		a.handleRollDice(pc)
-	default:
-		a.sendError(pc, "unknown message type: "+msg.Type)
-	}
-}
-
-func (a *API) handlePlayCard(pc *PlayerConnection, payload interface{}) {
-	if pc.PlayerID == -1 {
-		a.sendCustomReply(pc, false, "player is not authenticated", nil)
+	// Check if user was already in a room (auto-rejoin on reconnect)
+	if room, pid := hub.FindRoomForPlayer(username, hash); room != nil {
+		log.Printf("@%s auto-rejoining room %s as player %d", username, room.Code, pid)
+		conn.WriteJSON(Message{
+			Type: "AUTO_REJOINED",
+			Payload: map[string]any{
+				"code":     room.Code,
+				"playerID": pid,
+			},
+		})
+		room.AddConnection(conn, hub, username, hash)
 		return
 	}
 
-	var cardPayload CardPlayPayload
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		a.sendCustomReply(pc, false, "error parsing card play payload", nil)
-		return
-	}
-	if err := json.Unmarshal(payloadBytes, &cardPayload); err != nil {
-		a.sendCustomReply(pc, false, "invalid card play payload format", nil)
-		return
-	}
-
-	resultState, err := a.Game.ProcessMove(
-		pc.PlayerID,
-		cardPayload.CardIndex,
-		cardPayload.Inputs,
-		cardPayload.Permanent,
-	)
-
-	if err != nil {
-		a.sendCustomReply(pc, false, fmt.Sprintf("move failed: %v", err), nil)
-		return
-	}
-
-	message := "non-pernament move previewed successfully"
-	if cardPayload.Permanent {
-		playerName := resultState.Players[pc.PlayerID].Name
-		cardName := resultState.Cards[cardPayload.CardIndex].Name
-		message = fmt.Sprintf("@%s used %s!", playerName, cardName)
-		a.BroadcastReply(true, message, resultState)
-		message = "permanent move recorded successfully"
-	}
-
-	a.sendCustomReply(pc, true, message, resultState)
-}
-
-func (a *API) sendCustomReply(pc *PlayerConnection, success bool, message string, state *model.GameState) {
-	reply := CardPlayReply{
-		Success:      success,
-		Message:      message,
-		NewGameState: state,
-	}
-
-	respMsg := Message{
-		Type:    "PLAY_CARD_REPLY",
-		Payload: reply,
-	}
-
-	pc.mu.Lock()
-	if err := pc.conn.WriteJSON(respMsg); err != nil {
-		log.Printf("error sending custom play card reply: %v", err)
-	}
-	pc.mu.Unlock()
-}
-
-func (a *API) BroadcastReply(success bool, message string, state *model.GameState) {
-	reply := CardPlayReply{
-		Success:      success,
-		Message:      message,
-		NewGameState: state,
-	}
-
-	respMsg := Message{
-		Type:    "PLAY_CARD_REPLY",
-		Payload: reply,
-	}
-
-	for _, pc := range a.Connections {
-		pc.mu.Lock()
-		if err := pc.conn.WriteJSON(respMsg); err != nil {
-			log.Printf("error broadcasting reply: %v", err)
-		}
-		pc.mu.Unlock()
-	}
-}
-
-func (a *API) BroadcastState() {
-	stateMsg := Message{
-		Type:    "STATE_UPDATE",
-		Payload: a.Game.CopyState(),
-	}
-	for _, pc := range a.Connections {
-		pc.mu.Lock()
-		if err := pc.conn.WriteJSON(stateMsg); err != nil {
-			log.Printf("error broadcasting state: %v", err)
-		}
-		pc.mu.Unlock()
-	}
-}
-
-func (a *API) sendResponse(pc *PlayerConnection, responseType string, data interface{}) {
-	respMsg := Message{
-		Type:    responseType,
-		Payload: data,
-	}
-	pc.mu.Lock()
-	if err := pc.conn.WriteJSON(respMsg); err != nil {
-		log.Printf("error sending response: %v", err)
-	}
-	pc.mu.Unlock()
-}
-
-func (a *API) sendError(pc *PlayerConnection, errMsg string) {
-	errorMsg := Message{
-		Type: "ERROR",
+	// Send welcome message
+	conn.WriteJSON(Message{
+		Type: "WELCOME",
 		Payload: map[string]string{
-			"message": errMsg,
+			"name":    username,
+			"message": "Connected! Send CREATE_ROOM or JOIN_ROOM.",
 		},
-	}
-	pc.mu.Lock()
-	if err := pc.conn.WriteJSON(errorMsg); err != nil {
-		log.Printf("error sending error: %v", err)
-	}
-	pc.mu.Unlock()
+	})
+
+	// Enter room selection loop
+	handleRoomSelection(conn, hub, username, hash)
 }
 
-func (a *API) handleNextTurn(pc *PlayerConnection) {
-	if pc.PlayerID == -1 {
-		a.sendCustomReply(pc, false, "player is not authenticated", nil)
-		return
-	}
+func handleRoomSelection(conn *websocket.Conn, hub *Hub, username, hash string) {
+	for {
+		var msg Message
+		if err := conn.ReadJSON(&msg); err != nil {
+			conn.Close()
+			return
+		}
 
-	resultState, err := a.Game.ProcessNextTurn(pc.PlayerID)
-	if err != nil {
-		a.sendCustomReply(pc, false, fmt.Sprintf("failed to end the turn: %v", err), nil)
-		return
-	}
+		switch msg.Type {
+		case "CREATE_ROOM":
+			var p CreateRoomPayload
+			if err := decodePayload(msg.Payload, &p); err != nil {
+				writeError(conn, "invalid create room payload")
+				continue
+			}
+			room := hub.CreateRoom(p)
+			room.hub = hub
+			conn.WriteJSON(Message{
+				Type:    "ROOM_CREATED",
+				Payload: map[string]string{"code": room.Code},
+			})
+			room.AddConnection(conn, hub, username, hash)
+			return
 
-	message := fmt.Sprintf("player @%s has ended their turn.", resultState.Players[pc.PlayerID].Name)
-	if resultState.Turn != a.Game.State.Turn {
-		message = fmt.Sprintf("turn finished! started turn %d. current player is @%s", resultState.Turn, resultState.Players[resultState.Turn%len(resultState.Players)].Name)
+		case "JOIN_ROOM":
+			var p JoinPayload
+			if err := decodePayload(msg.Payload, &p); err != nil {
+				writeError(conn, "invalid join payload")
+				continue
+			}
+			room := hub.GetRoom(p.Code)
+			if room == nil {
+				writeError(conn, "room not found: "+p.Code)
+				continue
+			}
+			conn.WriteJSON(Message{
+				Type:    "JOINED",
+				Payload: map[string]string{"code": room.Code},
+			})
+			room.AddConnection(conn, hub, username, hash)
+			return
+
+		default:
+			writeError(conn, "expected CREATE_ROOM or JOIN_ROOM")
+		}
 	}
-	a.BroadcastReply(true, message, resultState)
 }
 
-func (a *API) handleRollDice(pc *PlayerConnection) {
-	if pc.PlayerID == -1 {
-		a.sendError(pc, "not authenticated")
-		return
-	}
+func writeError(conn *websocket.Conn, msg string) {
+	conn.WriteJSON(Message{Type: "ERROR", Payload: map[string]string{"message": msg}})
+}
 
-	resultState, err := a.Game.ProcessDiceRoll(pc.PlayerID)
+func decodePayload(payload any, target any) error {
+	b, err := json.Marshal(payload)
 	if err != nil {
-		a.sendCustomReply(pc, false, fmt.Sprintf("Dice roll failed: %v", err), nil)
-		return
+		return err
 	}
-
-	playerName := resultState.Players[pc.PlayerID].Name
-	message := fmt.Sprintf("@%s rolled the dice!", playerName)
-
-	a.BroadcastReply(true, message, resultState)
+	return json.Unmarshal(b, target)
 }

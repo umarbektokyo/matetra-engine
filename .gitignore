@@ -1,0 +1,22 @@
+# Binaries
+matetra-server
+matetra-client
+*.exe
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test
+*.test
+coverage.out

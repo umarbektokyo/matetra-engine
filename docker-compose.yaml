@@ -1,0 +1,11 @@
+services:
+  matetra:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-1729}:${PORT:-1729}"
+    environment:
+      - JWT_SECRET=${JWT_SECRET:-matetra-dev-secret}
+      - PORT=${PORT:-1729}
+    restart: unless-stopped

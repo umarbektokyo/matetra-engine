@@ -2,7 +2,6 @@ package theorems
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/umarbektokyo/matetra-engine/cards/constants"
 	"github.com/umarbektokyo/matetra-engine/model"
@@ -11,40 +10,39 @@ import (
 
 // Input: An
 func ELEMENTIDENTITY(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	if err := utils.CheckCardMark(vgs, aP, aI); err != nil {
+		return err
+	}
 	return nil
 }
 
 // Input: An
 func ELEMENTCLOSURE(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	if err := utils.CheckCardMark(vgs, aP, aI); err != nil {
+		return err
+	}
 
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-	a.Mark = "I"
-
+	vgs.Numbers[aP][aI].Mark = "I"
 	return nil
 }
 
 // Input: An
 func ELEMENTDISTRIBUTIVE(vgs *model.GameState, card *model.Card) error {
-	attackedPlayer := card.Inputs[0]
-	attackedIndex := card.Inputs[1]
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	if err := utils.CheckCardMark(vgs, aP, aI); err != nil {
+		return err
+	}
 
-	utils.CheckCardMark(vgs, attackedPlayer, attackedIndex)
-
-	a := &vgs.Numbers[attackedPlayer][attackedIndex]
+	a := vgs.Numbers[aP][aI]
 
 	for i := range vgs.Players {
-		if i == attackedPlayer {
+		if i == aP {
 			continue
 		}
-		val := new(big.Float).SetPrec(a.Value.Prec()).Set(a.Value)
-		constants.AddConstant(vgs, i, val, "")
+		dup := model.Number{Value: a.Value, Base: a.Base, Mark: ""}
+		constants.AddConstant(vgs, i, dup)
 	}
 
 	return nil
@@ -52,49 +50,57 @@ func ELEMENTDISTRIBUTIVE(vgs *model.GameState, card *model.Card) error {
 
 // Input: AnAn
 func ELEMENTCOMMUTATIVE(vgs *model.GameState, card *model.Card) error {
-	player1 := card.Inputs[0]
-	index1 := card.Inputs[1]
-	player2 := card.Inputs[2]
-	index2 := card.Inputs[3]
+	p1, i1 := card.Inputs[0], card.Inputs[1]
+	p2, i2 := card.Inputs[2], card.Inputs[3]
 
-	utils.CheckCardMark(vgs, player1, index1)
-	utils.CheckCardMark(vgs, player2, index2)
+	if err := utils.CheckCardMark(vgs, p1, i1); err != nil {
+		return err
+	}
+	if err := utils.CheckCardMark(vgs, p2, i2); err != nil {
+		return err
+	}
 
-	a := &vgs.Numbers[player1][index1]
-	b := &vgs.Numbers[player2][index2]
+	a := &vgs.Numbers[p1][i1]
+	b := &vgs.Numbers[p2][i2]
 
-	tmpVal := new(big.Float).SetPrec(a.Value.Prec()).Set(a.Value)
-	tmpMark := a.Mark
-
-	a.Value = new(big.Float).SetPrec(a.Value.Prec()).Set(b.Value)
-	a.Mark = b.Mark
-
-	b.Value = tmpVal
-	b.Mark = tmpMark
+	a.Value, b.Value = b.Value, a.Value
+	a.Base, b.Base = b.Base, a.Base
+	a.Mark, b.Mark = b.Mark, a.Mark
 
 	return nil
 }
 
 // Input: AnUn
 func PYTHAGOREANTHEOREM(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-	userPlayer := card.Inputs[2]
-	userIndex := card.Inputs[3]
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	uP, uI := card.Inputs[2], card.Inputs[3]
 
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-	utils.CheckCardMark(vgs, userPlayer, userIndex)
+	if err := utils.CheckCardMark(vgs, aP, aI); err != nil {
+		return err
+	}
+	if err := utils.CheckCardMark(vgs, uP, uI); err != nil {
+		return err
+	}
 
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-	b := &vgs.Numbers[userPlayer][userIndex]
-	prec := a.Value.Prec()
+	a := &vgs.Numbers[aP][aI]
+	b := &vgs.Numbers[uP][uI]
 
-	a2 := new(big.Float).SetPrec(prec).Mul(a.Value, a.Value)
-	b2 := new(big.Float).SetPrec(prec).Mul(b.Value, b.Value)
-	sum := new(big.Float).SetPrec(prec).Add(a2, b2)
-	a.Value.SetPrec(prec).Sqrt(sum)
+	aNum := model.Number{Value: a.Value, Base: a.Base}
+	bNum := model.Number{Value: b.Value, Base: b.Base}
 
-	b.Value = big.NewFloat(0)
+	a2 := model.NumSquare(aNum)
+	b2 := model.NumSquare(bNum)
+	sum := model.NumAdd(a2, b2)
+	result, err := model.NumSqrt(sum)
+	if err != nil {
+		return err
+	}
+
+	a.Value = result.Value
+	a.Base = result.Base
+
+	b.Value = 0
+	b.Base = 0
 	b.Mark = "n"
 
 	return nil
@@ -102,12 +108,11 @@ func PYTHAGOREANTHEOREM(vgs *model.GameState, card *model.Card) error {
 
 // Input: An
 func PASCALTRIANGLE(vgs *model.GameState, card *model.Card) error {
-	player := card.Inputs[0]
-	index := card.Inputs[1]
+	player, index := card.Inputs[0], card.Inputs[1]
+	if err := utils.CheckCardMark(vgs, player, index); err != nil {
+		return err
+	}
 
-	utils.CheckCardMark(vgs, player, index)
-
-	// find island
 	L, R, err := utils.FindIsland(vgs, player, index)
 	if err != nil {
 		return err
@@ -115,54 +120,52 @@ func PASCALTRIANGLE(vgs *model.GameState, card *model.Card) error {
 
 	nums := vgs.Numbers[player]
 
-	// collapse island using Pascal rule
-	for i := L + 1; i <= R; i++ {
-		prec := nums[L].Value.Prec()
-		nums[L].Value = new(big.Float).
-			SetPrec(prec).
-			Add(nums[L].Value, nums[i].Value)
+	// Collapse island: sum all into leftmost
+	sum := model.Number{Value: 0, Base: 0}
+	for i := L; i <= R; i++ {
+		sum = model.NumAdd(sum, model.Number{Value: nums[i].Value, Base: nums[i].Base})
+	}
 
-		nums[i].Value = big.NewFloat(0)
+	nums[L].Value = sum.Value
+	nums[L].Base = sum.Base
+
+	for i := L + 1; i <= R; i++ {
+		nums[i].Value = 0
+		nums[i].Base = 0
 		nums[i].Mark = "n"
 	}
 
 	vgs.Numbers[player] = nums
-
 	return nil
 }
 
 // Input: An
 func FUNDAMENTALTHEOREMOFARITHMETIC(vgs *model.GameState, card *model.Card) error {
-	player := card.Inputs[0]
-	index := card.Inputs[1]
-
-	utils.CheckCardMark(vgs, player, index)
+	player, index := card.Inputs[0], card.Inputs[1]
+	if err := utils.CheckCardMark(vgs, player, index); err != nil {
+		return err
+	}
 
 	num := &vgs.Numbers[player][index]
+	n := model.Number{Value: num.Value, Base: num.Base}
 
-	// must be integer
-	intVal, ok := utils.FloatToIntExact(num.Value)
-	if !ok || intVal.Cmp(big.NewInt(1)) <= 0 {
+	intVal, ok := n.ToInt64()
+	if !ok || intVal <= 1 {
 		return fmt.Errorf("number must be integer > 1")
 	}
 
 	factors := utils.PrimeFactors(intVal)
 
-	// add factors
 	for _, f := range factors {
-		err := constants.AddConstant(
-			vgs,
-			player,
-			new(big.Float).SetInt(f),
-			"",
-		)
+		err := constants.AddConstant(vgs, player, model.NumFromInt(f))
 		if err != nil {
 			return err
 		}
 	}
 
-	// consume original
-	num.Value = big.NewFloat(0)
+	// Consume original
+	num.Value = 0
+	num.Base = 0
 	num.Mark = "n"
 
 	return nil

@@ -17,25 +17,24 @@ import (
 //go:embed cards.csv
 var CardsCSV []byte
 
-// Loads cards from embedded csv
 func LoadCards() ([]model.Card, error) {
-	// Read through the data and clean it
 	reader := csv.NewReader(bytes.NewReader(CardsCSV))
 	reader.TrimLeadingSpace = true
 	records, err := reader.ReadAll()
 	if err != nil {
 		return nil, err
 	}
-	records = records[1:]
+	records = records[1:] // skip header
 
-	// Start recording the cards
 	var cards []model.Card
 
-	// Add each card (row)
 	for _, row := range records {
-		count := utils.Must(strconv.Atoi(row[6]))
+		count, err := strconv.Atoi(row[6])
+		if err != nil {
+			return nil, fmt.Errorf("bad count for card %s: %v", row[0], err)
+		}
+		precedence, _ := strconv.Atoi(row[8])
 
-		// Add multiple copies if necessary
 		for i := 0; i < count; i++ {
 			card := model.Card{
 				Name:        row[0],
@@ -45,6 +44,7 @@ func LoadCards() ([]model.Card, error) {
 				InputsReq:   row[5],
 				Owner:       -1,
 				Inputs:      []int{},
+				Precedence:  precedence,
 			}
 			cards = append(cards, card)
 		}
@@ -53,16 +53,14 @@ func LoadCards() ([]model.Card, error) {
 }
 
 func CardFunction(vgs *model.GameState, cardIndex int) error {
-	var card *model.Card
-
-	card = &vgs.Cards[cardIndex]
+	card := &vgs.Cards[cardIndex]
 
 	if err := utils.ValidateInputs(vgs, card); err != nil {
 		return err
 	}
 
 	switch card.Method {
-	// functions
+	// Functions
 	case "ADD":
 		return functions.ADD(vgs, card)
 	case "SUBTRACT":
@@ -81,8 +79,6 @@ func CardFunction(vgs *model.GameState, cardIndex int) error {
 		return functions.POSITIVE(vgs, card)
 	case "SQRT":
 		return functions.SQRT(vgs, card)
-	case "FACTORIAL":
-		return constants.FACTORIAL(vgs, card)
 	case "SQUARE":
 		return functions.SQUARE(vgs, card)
 	case "COSMOD":
@@ -111,7 +107,7 @@ func CardFunction(vgs *model.GameState, cardIndex int) error {
 		return functions.POLYNOMIAL2(vgs, card)
 	case "POLYNOMIAL1":
 		return functions.POLYNOMIAL1(vgs, card)
-	// theorems
+	// Theorems
 	case "ELEMENTIDENTITY":
 		return theorems.ELEMENTIDENTITY(vgs, card)
 	case "ELEMENTCLOSURE":
@@ -126,7 +122,7 @@ func CardFunction(vgs *model.GameState, cardIndex int) error {
 		return theorems.PASCALTRIANGLE(vgs, card)
 	case "FUNDAMENTALTHEOREMOFARITHMETIC":
 		return theorems.FUNDAMENTALTHEOREMOFARITHMETIC(vgs, card)
-	// constants
+	// Constants
 	case "CONSTE":
 		return constants.CONSTE(vgs, card)
 	case "CONSTN1":
@@ -145,8 +141,8 @@ func CardFunction(vgs *model.GameState, cardIndex int) error {
 		return constants.CONSTPI(vgs, card)
 	case "CONST7":
 		return constants.CONST7(vgs, card)
-	case "CONST26":
-		return constants.CONST26(vgs, card)
+	case "CONST28":
+		return constants.CONST28(vgs, card)
 	case "CONST6":
 		return constants.CONST6(vgs, card)
 	case "CONSTFIBONACCI":
@@ -161,6 +157,8 @@ func CardFunction(vgs *model.GameState, cardIndex int) error {
 		return constants.CONSTGRAHAM(vgs, card)
 	case "CONSTCUPID":
 		return constants.CONSTCUPID(vgs, card)
+	case "FACTORIAL":
+		return constants.FACTORIAL(vgs, card)
 	default:
 		return fmt.Errorf("unknown card method %s", card.Method)
 	}

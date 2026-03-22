@@ -3,143 +3,108 @@ package functions
 import (
 	"fmt"
 	"math"
-	"math/big"
 
 	"github.com/umarbektokyo/matetra-engine/model"
 	"github.com/umarbektokyo/matetra-engine/utils"
 )
 
+func nullOut(num *model.Number) {
+	num.Value = 0
+	num.Base = 0
+	num.Mark = "n"
+}
+
+func applyResult(dst *model.Number, r model.Number) error {
+	if err := r.Sanitize(); err != nil {
+		return err
+	}
+	dst.Value = r.Value
+	dst.Base = r.Base
+	return nil
+}
+
+func getNum(vgs *model.GameState, p, i int) (model.Number, error) {
+	if p < 0 || p >= len(vgs.Numbers) {
+		return model.Number{}, fmt.Errorf("player %d out of range", p)
+	}
+	if i < 0 || i >= len(vgs.Numbers[p]) {
+		return model.Number{}, fmt.Errorf("slot %d out of range", i)
+	}
+	if err := utils.CheckCardMark(vgs, p, i); err != nil {
+		return model.Number{}, err
+	}
+	n := vgs.Numbers[p][i]
+	return model.Number{Value: n.Value, Base: n.Base}, nil
+}
+
 // Input: AnUn
 func ADD(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-	userPlayer := card.Inputs[2]
-	userIndex := card.Inputs[3]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-	utils.CheckCardMark(vgs, userPlayer, userIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-	b := &vgs.Numbers[userPlayer][userIndex]
-
-	a.Value.Add(a.Value, b.Value)
-
-	b.Value = big.NewFloat(0)
-	b.Mark = "n"
-
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	uP, uI := card.Inputs[2], card.Inputs[3]
+	a, err := getNum(vgs, aP, aI); if err != nil { return err }
+	b, err := getNum(vgs, uP, uI); if err != nil { return err }
+	if err := applyResult(&vgs.Numbers[aP][aI], model.NumAdd(a, b)); err != nil { return err }
+	nullOut(&vgs.Numbers[uP][uI])
 	return nil
 }
 
 // Input: AnUn
 func SUBTRACT(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-	userPlayer := card.Inputs[2]
-	userIndex := card.Inputs[3]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-	utils.CheckCardMark(vgs, userPlayer, userIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-	b := &vgs.Numbers[userPlayer][userIndex]
-
-	a.Value.Sub(a.Value, b.Value)
-
-	b.Value = big.NewFloat(0)
-	b.Mark = "n"
-
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	uP, uI := card.Inputs[2], card.Inputs[3]
+	a, err := getNum(vgs, aP, aI); if err != nil { return err }
+	b, err := getNum(vgs, uP, uI); if err != nil { return err }
+	if err := applyResult(&vgs.Numbers[aP][aI], model.NumSub(a, b)); err != nil { return err }
+	nullOut(&vgs.Numbers[uP][uI])
 	return nil
 }
 
 // Input: AnUn
 func MULTIPLY(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-	userPlayer := card.Inputs[2]
-	userIndex := card.Inputs[3]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-	utils.CheckCardMark(vgs, userPlayer, userIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-	b := &vgs.Numbers[userPlayer][userIndex]
-
-	a.Value.Mul(a.Value, b.Value)
-
-	b.Value = big.NewFloat(0)
-	b.Mark = "n"
-
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	uP, uI := card.Inputs[2], card.Inputs[3]
+	a, err := getNum(vgs, aP, aI); if err != nil { return err }
+	b, err := getNum(vgs, uP, uI); if err != nil { return err }
+	if err := applyResult(&vgs.Numbers[aP][aI], model.NumMul(a, b)); err != nil { return err }
+	nullOut(&vgs.Numbers[uP][uI])
 	return nil
 }
 
 // Input: AnUn
 func DIVIDE(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-	userPlayer := card.Inputs[2]
-	userIndex := card.Inputs[3]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-	utils.CheckCardMark(vgs, userPlayer, userIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-	b := &vgs.Numbers[userPlayer][userIndex]
-
-	if b.Value.Cmp(big.NewFloat(0)) == 0 {
-		return fmt.Errorf("Cannot divide by zero")
-	}
-
-	a.Value.Quo(a.Value, b.Value)
-
-	b.Value = big.NewFloat(0)
-	b.Mark = "n"
-
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	uP, uI := card.Inputs[2], card.Inputs[3]
+	a, err := getNum(vgs, aP, aI); if err != nil { return err }
+	b, err := getNum(vgs, uP, uI); if err != nil { return err }
+	if b.IsZero() { return fmt.Errorf("cannot divide by zero") }
+	r, err := model.NumDiv(a, b); if err != nil { return err }
+	if err := applyResult(&vgs.Numbers[aP][aI], r); err != nil { return err }
+	nullOut(&vgs.Numbers[uP][uI])
 	return nil
 }
 
 // Input: An
 func ABSOLUTEVALUE(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-
-	a.Value.Abs(a.Value)
-
-	return nil
-}
-
-// Input: AnUn
-func INVERSE(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-
-	if a.Value.Cmp(big.NewFloat(0)) == 0 {
-		return fmt.Errorf("Cannot divide by zero")
-	}
-
-	a.Value.Quo(big.NewFloat(1), a.Value)
-
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	if _, err := getNum(vgs, aP, aI); err != nil { return err }
+	if vgs.Numbers[aP][aI].Value < 0 { vgs.Numbers[aP][aI].Value = -vgs.Numbers[aP][aI].Value }
 	return nil
 }
 
 // Input: An
+func INVERSE(vgs *model.GameState, card *model.Card) error {
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	a, err := getNum(vgs, aP, aI); if err != nil { return err }
+	if a.IsZero() { return fmt.Errorf("cannot invert zero") }
+	r, err := model.NumDiv(model.NumFromFloat(1), a); if err != nil { return err }
+	return applyResult(&vgs.Numbers[aP][aI], r)
+}
+
+// Input: An
 func NEGATIVE(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-
-	a.Value.Mul(a.Value, big.NewFloat(-1))
-
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	if _, err := getNum(vgs, aP, aI); err != nil { return err }
+	vgs.Numbers[aP][aI].Value = -vgs.Numbers[aP][aI].Value
 	return nil
 }
 
@@ -150,337 +115,187 @@ func POSITIVE(vgs *model.GameState, card *model.Card) error {
 
 // Input: An
 func SQRT(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-
-	if a.Value.Sign() < 0 {
-		return fmt.Errorf("cannot take a square root a negative number")
-	}
-
-	a.Value.Sqrt(a.Value)
-
-	return nil
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	a, err := getNum(vgs, aP, aI); if err != nil { return err }
+	if a.Value < 0 { return fmt.Errorf("cannot sqrt negative number (%s)", a.Display()) }
+	r, err := model.NumSqrt(a); if err != nil { return err }
+	return applyResult(&vgs.Numbers[aP][aI], r)
 }
 
 // Input: An
 func SQUARE(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-
-	a.Value.Mul(a.Value, a.Value)
-
-	return nil
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	a, err := getNum(vgs, aP, aI); if err != nil { return err }
+	return applyResult(&vgs.Numbers[aP][aI], model.NumSquare(a))
 }
 
-// Input: An
+// Input: And
 func COSMOD(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-
-	dice := utils.RollDice(6)
-	cosVal := math.Cos(float64(dice))
-	cosBig := new(big.Float).SetPrec(a.Value.Prec()).SetFloat64(cosVal)
-
-	a.Value.Mul(a.Value, cosBig)
-
-	return nil
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	dice := card.Inputs[2]
+	a, err := getNum(vgs, aP, aI); if err != nil { return err }
+	r := model.NumMul(a, model.NumFromFloat(math.Cos(float64(dice))))
+	return applyResult(&vgs.Numbers[aP][aI], r)
 }
 
-// Input: An
+// Input: And
 func SINMOD(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-
-	dice := utils.RollDice(6)
-	sinVal := math.Sin(float64(dice))
-	sinBig := new(big.Float).SetPrec(a.Value.Prec()).SetFloat64(sinVal)
-
-	a.Value.Mul(a.Value, sinBig)
-
-	return nil
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	dice := card.Inputs[2]
+	a, err := getNum(vgs, aP, aI); if err != nil { return err }
+	r := model.NumMul(a, model.NumFromFloat(math.Sin(float64(dice))))
+	return applyResult(&vgs.Numbers[aP][aI], r)
 }
 
-// Input: An
+// Input: And
 func TANMOD(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-
-	dice := utils.RollDice(6)
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	dice := card.Inputs[2]
+	a, err := getNum(vgs, aP, aI); if err != nil { return err }
 	tanVal := math.Tan(float64(dice))
-	tanBig := new(big.Float).SetPrec(a.Value.Prec()).SetFloat64(tanVal)
-
-	a.Value.Mul(a.Value, tanBig)
-
-	return nil
+	if math.IsInf(tanVal, 0) || math.IsNaN(tanVal) {
+		return fmt.Errorf("tan(%d) is undefined", dice)
+	}
+	r := model.NumMul(a, model.NumFromFloat(tanVal))
+	return applyResult(&vgs.Numbers[aP][aI], r)
 }
 
 // Input: An
 func LOG10(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-
-	if a.Value.Sign() < 0 {
-		return fmt.Errorf("cannot take a logarithm a negative number")
-	}
-
-	val, _ := a.Value.Float64()
-	logVal := math.Log10(val)
-	a.Value.SetPrec(a.Value.Prec()).SetFloat64(logVal)
-
-	return nil
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	a, err := getNum(vgs, aP, aI); if err != nil { return err }
+	if a.Value <= 0 { return fmt.Errorf("log10 requires positive number, got %s", a.Display()) }
+	r, err := model.NumLog10(a); if err != nil { return err }
+	return applyResult(&vgs.Numbers[aP][aI], r)
 }
 
 // Input: An
 func EXPONENTIAL(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-
-	val, _ := a.Value.Float64()
-	expVal := math.Exp(val)
-	a.Value.SetPrec(a.Value.Prec()).SetFloat64(expVal)
-
-	return nil
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	a, err := getNum(vgs, aP, aI); if err != nil { return err }
+	r := model.NumExp(a)
+	return applyResult(&vgs.Numbers[aP][aI], r)
 }
 
 // Input: An
 func NATLOG(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-
-	if a.Value.Sign() < 0 {
-		return fmt.Errorf("cannot take a logarithm a negative number")
-	}
-
-	val, _ := a.Value.Float64()
-	lnVal := math.Log(val)
-	a.Value.SetPrec(a.Value.Prec()).SetFloat64(lnVal)
-
-	return nil
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	a, err := getNum(vgs, aP, aI); if err != nil { return err }
+	if a.Value <= 0 { return fmt.Errorf("ln requires positive number, got %s", a.Display()) }
+	r, err := model.NumLn(a); if err != nil { return err }
+	return applyResult(&vgs.Numbers[aP][aI], r)
 }
 
-// Input: An
+// Input: And
 func LOGORHYTHM(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-	dice := utils.RollDice(6)
-
-	if a.Value.Sign() < 0 {
-		return fmt.Errorf("cannot take a logarithm a negative number")
-	}
-
-	val, _ := a.Value.Float64()
-	logVal := math.Log(val) / math.Log(float64(dice))
-	a.Value.SetPrec(a.Value.Prec()).SetFloat64(logVal)
-
-	return nil
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	dice := card.Inputs[2]
+	a, err := getNum(vgs, aP, aI); if err != nil { return err }
+	if a.Value <= 0 { return fmt.Errorf("log requires positive number, got %s", a.Display()) }
+	if dice == 1 { return fmt.Errorf("log base 1 is undefined") }
+	r, err := model.NumLogBase(a, float64(dice)); if err != nil { return err }
+	return applyResult(&vgs.Numbers[aP][aI], r)
 }
 
-// Input: An
+// Input: And
 func ROOTBASE(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-	dice := utils.RollDice(6)
-
-	if a.Value.Sign() < 0 {
-		return fmt.Errorf("cannot take a logarithm a negative number")
-	}
-
-	val, _ := a.Value.Float64()
-	result := math.Pow(val, 1.0/float64(dice))
-	a.Value.SetPrec(a.Value.Prec()).SetFloat64(result)
-
-	return nil
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	dice := card.Inputs[2]
+	a, err := getNum(vgs, aP, aI); if err != nil { return err }
+	if a.Value < 0 && dice%2 == 0 { return fmt.Errorf("even root of negative number") }
+	r, err := model.NumPow(a, 1.0/float64(dice)); if err != nil { return err }
+	return applyResult(&vgs.Numbers[aP][aI], r)
 }
 
-// Input: An
+// Input: And
 func EXPONENTBASE(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-	dice := utils.RollDice(6)
-
-	val, _ := a.Value.Float64()
-	result := math.Pow(val, float64(dice))
-	a.Value.SetPrec(a.Value.Prec()).SetFloat64(result)
-
-	return nil
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	dice := card.Inputs[2]
+	a, err := getNum(vgs, aP, aI); if err != nil { return err }
+	r, err := model.NumPow(a, float64(dice)); if err != nil { return err }
+	return applyResult(&vgs.Numbers[aP][aI], r)
 }
 
-// Input: AnUn
+// Input: AnUnd
 func POLYNOMIAL1(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-	userPlayer := card.Inputs[2]
-	userIndex := card.Inputs[3]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-	utils.CheckCardMark(vgs, userPlayer, userIndex)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-	b := &vgs.Numbers[userPlayer][userIndex]
-	prec := a.Value.Prec()
-	d := new(big.Float).SetPrec(prec).SetFloat64(float64(utils.RollDice(6)))
-
-	term1 := new(big.Float).SetPrec(prec).Mul(a.Value, d)
-
-	a.Value.Add(term1, b.Value)
-
-	b.Value = big.NewFloat(0)
-	b.Mark = "n"
-
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	uP, uI := card.Inputs[2], card.Inputs[3]
+	dice := card.Inputs[4]
+	a, err := getNum(vgs, aP, aI); if err != nil { return err }
+	b, err := getNum(vgs, uP, uI); if err != nil { return err }
+	d := model.NumFromFloat(float64(dice))
+	r := model.NumAdd(model.NumMul(a, d), b)
+	if err := applyResult(&vgs.Numbers[aP][aI], r); err != nil { return err }
+	nullOut(&vgs.Numbers[uP][uI])
 	return nil
 }
 
-// Input: AnUnUn
+// Input: AnUnUnd
 func POLYNOMIAL2(vgs *model.GameState, card *model.Card) error {
-	attackerPlayer := card.Inputs[0]
-	attackerIndex := card.Inputs[1]
-	userPlayer := card.Inputs[2]
-	userIndex := card.Inputs[3]
-	userPlayer2 := card.Inputs[4]
-	userIndex2 := card.Inputs[5]
-
-	utils.CheckCardMark(vgs, attackerPlayer, attackerIndex)
-	utils.CheckCardMark(vgs, userPlayer, userIndex)
-	utils.CheckCardMark(vgs, userPlayer2, userIndex2)
-
-	a := &vgs.Numbers[attackerPlayer][attackerIndex]
-	b := &vgs.Numbers[userPlayer][userIndex]
-	c := &vgs.Numbers[userPlayer2][userIndex2]
-	prec := a.Value.Prec()
-	d := new(big.Float).SetPrec(prec).SetFloat64(float64(utils.RollDice(6)))
-	d2 := new(big.Float).SetPrec(prec).Mul(d, d)
-
-	term1 := new(big.Float).SetPrec(prec).Mul(a.Value, d2)
-	term2 := new(big.Float).SetPrec(prec).Mul(b.Value, d)
-
-	a.Value.Add(term1, term2)
-	a.Value.Add(a.Value, c.Value)
-
-	b.Value = big.NewFloat(0)
-	b.Mark = "n"
-
-	c.Value = big.NewFloat(0)
-	c.Mark = "n"
-
+	aP, aI := card.Inputs[0], card.Inputs[1]
+	uP, uI := card.Inputs[2], card.Inputs[3]
+	u2P, u2I := card.Inputs[4], card.Inputs[5]
+	dice := card.Inputs[6]
+	a, err := getNum(vgs, aP, aI); if err != nil { return err }
+	b, err := getNum(vgs, uP, uI); if err != nil { return err }
+	c, err := getNum(vgs, u2P, u2I); if err != nil { return err }
+	d := model.NumFromFloat(float64(dice))
+	d2 := model.NumSquare(d)
+	r := model.NumAdd(model.NumAdd(model.NumMul(a, d2), model.NumMul(b, d)), c)
+	if err := applyResult(&vgs.Numbers[aP][aI], r); err != nil { return err }
+	nullOut(&vgs.Numbers[uP][uI])
+	nullOut(&vgs.Numbers[u2P][u2I])
 	return nil
 }
 
 // Input: A
 func SIGMANOTATION(vgs *model.GameState, card *model.Card) error {
 	player := card.Inputs[0]
+	if player < 0 || player >= len(vgs.Numbers) { return fmt.Errorf("player out of range") }
 	numbers := vgs.Numbers[player]
 
 	dest := -1
-	for i, num := range numbers {
-		if num.Mark != "n" {
-			dest = i
-			break
-		}
+	for i := range numbers {
+		if numbers[i].Mark != "n" { dest = i; break }
 	}
-	if dest == -1 {
-		return fmt.Errorf("no numbers to sum")
-	}
+	if dest == -1 { return fmt.Errorf("no numbers to sum") }
 
-	prec := numbers[dest].Value.Prec()
-	sum := new(big.Float).SetPrec(prec).SetFloat64(0)
-
+	sum := model.Number{Value: 0, Base: 0}
 	for i := range numbers {
 		if numbers[i].Mark != "n" {
-			sum.Add(sum, numbers[i].Value)
-
-			if i != dest {
-				numbers[i].Value = big.NewFloat(0)
-				numbers[i].Mark = "n"
-			}
+			sum = model.NumAdd(sum, model.Number{Value: numbers[i].Value, Base: numbers[i].Base})
+			if i != dest { nullOut(&numbers[i]) }
 		}
 	}
-
-	numbers[dest].Value = sum
-
-	// Write back
+	if err := sum.Sanitize(); err != nil { return err }
+	numbers[dest].Value = sum.Value
+	numbers[dest].Base = sum.Base
 	vgs.Numbers[player] = numbers
-
 	return nil
 }
 
 // Input: A
 func PRODUCTNOTATION(vgs *model.GameState, card *model.Card) error {
 	player := card.Inputs[0]
+	if player < 0 || player >= len(vgs.Numbers) { return fmt.Errorf("player out of range") }
 	numbers := vgs.Numbers[player]
 
 	dest := -1
-	for i, num := range numbers {
-		if num.Mark != "n" {
-			dest = i
-			break
-		}
+	for i := range numbers {
+		if numbers[i].Mark != "n" { dest = i; break }
 	}
-	if dest == -1 {
-		return fmt.Errorf("no numbers to multiply")
-	}
+	if dest == -1 { return fmt.Errorf("no numbers to multiply") }
 
-	prec := numbers[dest].Value.Prec()
-	product := new(big.Float).SetPrec(prec).SetFloat64(1)
-
+	product := model.NumFromFloat(1)
 	for i := range numbers {
 		if numbers[i].Mark != "n" {
-			product.Mul(product, numbers[i].Value)
-
-			if i != dest {
-				numbers[i].Value = big.NewFloat(0)
-				numbers[i].Mark = "n"
-			}
+			product = model.NumMul(product, model.Number{Value: numbers[i].Value, Base: numbers[i].Base})
+			if i != dest { nullOut(&numbers[i]) }
 		}
 	}
-
-	numbers[dest].Value = product
-
-	// Write back
+	if err := product.Sanitize(); err != nil { return err }
+	numbers[dest].Value = product.Value
+	numbers[dest].Base = product.Base
 	vgs.Numbers[player] = numbers
-
 	return nil
 }
