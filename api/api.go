@@ -56,6 +56,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func Start(hub *Hub, port string) {
+	http.HandleFunc("/", handleIndex)
 	http.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
 		handleAuth(w, r, hub)
 	})
@@ -66,6 +67,72 @@ func Start(hub *Hub, port string) {
 	log.Printf("matetra server running on :%s", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
+
+func handleIndex(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write([]byte(indexHTML))
+}
+
+const indexHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>matetra</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000;
+    color: #e0e0e0;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+  .container { text-align: center; }
+  pre {
+    color: #fff;
+    font-size: clamp(0.35rem, 1.2vw, 0.85rem);
+    line-height: 1.2;
+    margin-bottom: 1.5rem;
+  }
+  p { color: #555; font-size: 0.85rem; margin-bottom: 2rem; }
+  code {
+    display: inline-block;
+    color: #888;
+    font-size: 0.85rem;
+    border: 1px solid #222;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+  }
+  code span { color: #555; }
+  a { color: #333; font-size: 0.75rem; text-decoration: none; display: block; margin-top: 2rem; }
+  a:hover { color: #555; }
+</style>
+</head>
+<body>
+<div class="container">
+  <pre>
+$$\                $$\
+$$ |               $$ |
+$$$$$$\$$$$\   $$$$$$\ $$$$$$\    $$$$$$\ $$$$$$\    $$$$$$\  $$$$$$\
+$$  _$$  _$$\  \____$$\\_$$  _|  $$  __$$\\_$$  _|  $$  __$$\ \____$$\
+$$ / $$ / $$ | $$$$$$$ | $$ |    $$$$$$$$ | $$ |    $$ |  \__|$$$$$$$ |
+$$ | $$ | $$ |$$  __$$ | $$ |$$\ $$   ____| $$ |$$\ $$ |     $$  __$$ |
+$$ | $$ | $$ |\$$$$$$$ | \$$$$  |\$$$$$$$\  \$$$$  |$$ |     \$$$$$$$ |
+\__| \__| \__| \_______|  \____/  \_______|  \____/ \__|      \_______|</pre>
+  <p>a multiplayer math card game for the terminal</p>
+  <code><span>$</span> go install github.com/umarbektokyo/matetra-engine/cmd/matetra-client@latest</code>
+  <a href="https://github.com/umarbektokyo/matetra-engine">github</a>
+</div>
+</body>
+</html>
+`
 
 func handleAuth(w http.ResponseWriter, r *http.Request, hub *Hub) {
 	if r.Method != http.MethodPost {
