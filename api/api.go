@@ -109,8 +109,29 @@ const indexHTML = `<!DOCTYPE html>
     border: 1px solid #222;
     padding: 0.5rem 1rem;
     border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    position: relative;
   }
+  code:hover { border-color: #444; }
+  code.copied { border-color: #a4a; }
+  code .tooltip {
+    position: absolute;
+    top: -2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #222;
+    color: #a4a;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  code.copied .tooltip { opacity: 1; }
   code span { color: #555; }
+  .commands { display: flex; flex-direction: column; gap: 0.75rem; align-items: center; }
   a { color: #333; font-size: 0.75rem; text-decoration: none; display: block; margin-top: 2rem; }
   a:hover { color: #555; }
 </style>
@@ -127,9 +148,20 @@ $$ | $$ | $$ |$$  __$$ | $$ |$$\ $$   ____| $$ |$$\ $$ |     $$  __$$ |
 $$ | $$ | $$ |\$$$$$$$ | \$$$$  |\$$$$$$$\  \$$$$  |$$ |     \$$$$$$$ |
 \__| \__| \__| \_______|  \____/  \_______|  \____/ \__|      \_______|</pre>
   <p>a multiplayer math card game for the terminal</p>
-  <code><span>$</span> go install github.com/umarbektokyo/matetra-engine/cmd/matetra-client@latest</code>
+  <div class="commands">
+    <code onclick="copyCmd(this)"><span class="tooltip">copied!</span><span>$</span> go install github.com/umarbektokyo/matetra-engine/cmd/matetra-client@latest</code>
+    <code onclick="copyCmd(this)"><span class="tooltip">copied!</span><span>$</span> matetra-client matetra.umarbek.dev</code>
+  </div>
   <a href="https://github.com/umarbektokyo/matetra-engine">github</a>
 </div>
+<script>
+function copyCmd(el) {
+  var text = el.textContent.replace(/^copied!\$\s*/, '');
+  navigator.clipboard.writeText(text);
+  el.classList.add('copied');
+  setTimeout(function() { el.classList.remove('copied'); }, 1500);
+}
+</script>
 </body>
 </html>
 `
