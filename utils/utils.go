@@ -68,12 +68,13 @@ func ValidateInputs(vgs *model.GameState, card *model.Card) error {
 		}
 	}
 
-	// Check for immunity
+	// Check for immunity ("I" = immune only, "FI" = fibonacci + immune)
 	for i := 0; i < len(card.InputsReq); i++ {
 		if card.InputsReq[i] == 'n' {
 			player := card.Inputs[i-1]
 			index := card.Inputs[i]
-			if vgs.Numbers[player][index].Mark == "I" {
+			mark := vgs.Numbers[player][index].Mark
+			if mark == "I" || mark == "FI" {
 				return fmt.Errorf("number %d of player %d is immune this turn", index, player)
 			}
 		}

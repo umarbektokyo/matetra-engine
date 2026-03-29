@@ -55,6 +55,9 @@ func LoadCards() ([]model.Card, error) {
 func CardFunction(vgs *model.GameState, cardIndex int) error {
 	card := &vgs.Cards[cardIndex]
 
+	// Re-validate at apply time: game state may have changed since queue time
+	// (e.g. an earlier card in the queue granted immunity). If this fails,
+	// applyCards will skip this card gracefully instead of deadlocking.
 	if err := utils.ValidateInputs(vgs, card); err != nil {
 		return err
 	}

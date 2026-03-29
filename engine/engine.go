@@ -275,7 +275,13 @@ func (g *Game) applyCards(vgs *model.GameState) error {
 
 	for _, entry := range entries {
 		if err := g.applyCard(vgs, entry.cardIndex); err != nil {
-			return err
+			// Skip cards that fail at apply time (e.g. number became null
+			// or immune due to an earlier card in the same queue).
+			// The card is still consumed (owner set to -2 in applyCard on
+			// success), but on error we consume it here to avoid re-queuing.
+			vgs.Cards[entry.cardIndex].Owner = -2
+			vgs.Cards[entry.cardIndex].Inputs = nil
+			continue
 		}
 	}
 	vgs.Queue = nil
@@ -366,10 +372,9 @@ func (g *Game) ProcessNextTurn(playerID int) (*model.GameState, error) {
 	}
 
 	if finished {
-		// NOW actually apply all queued cards on the real state
-		if err := g.applyCards(g.State); err != nil {
-			return nil, fmt.Errorf("failed to apply queued cards: %v", err)
-		}
+		// NOW actually apply all queued cards on the real state.
+		// applyCards skips individual card failures gracefully.
+		g.applyCards(g.State)
 
 		g.trackBiggestNumbers()
 
@@ -502,9 +507,16 @@ func (g *Game) nextTurn() {
 
 	for i := range g.State.Numbers {
 		for j := range g.State.Numbers[i] {
-			if g.State.Numbers[i][j].Mark == "I" {
+			mark := g.State.Numbers[i][j].Mark
+
+			// Remove immunity, preserving Fibonacci if combined
+			if mark == "I" {
 				g.State.Numbers[i][j].Mark = ""
+			} else if mark == "FI" {
+				g.State.Numbers[i][j].Mark = "F"
 			}
+
+			// Grow Fibonacci numbers (including those just restored from "FI")
 			if g.State.Numbers[i][j].Mark == "F" {
 				val := g.State.Numbers[i][j].ToFloat64()
 				next := utils.NextFibonacci(val)
@@ -523,6 +535,19 @@ func (g *Game) nextTurn() {
 		g.State.DiceUsed[i] = false
 	}
 	g.State.Queue = nil
+
+	// Auto-fill empty slots with random dice rolls
+	for p := range g.State.Players {
+		for s := range g.State.Numbers[p] {
+			if g.State.Numbers[p][s].Mark == "n" {
+				g.State.Numbers[p][s] = model.Number{
+					Value: float64(rand.Intn(6) + 1),
+					Base:  0,
+					Mark:  "",
+				}
+			}
+		}
+	}
 
 	cp := g.State.Turn % len(g.State.Players)
 	g.addLog("Turn %d: @%s's turn", g.State.Turn, g.State.Players[cp].Name)

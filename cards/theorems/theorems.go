@@ -24,7 +24,12 @@ func ELEMENTCLOSURE(vgs *model.GameState, card *model.Card) error {
 		return err
 	}
 
-	vgs.Numbers[aP][aI].Mark = "I"
+	// Preserve Fibonacci mark: "F" becomes "FI" (both Fibonacci and Immune)
+	if vgs.Numbers[aP][aI].Mark == "F" {
+		vgs.Numbers[aP][aI].Mark = "FI"
+	} else {
+		vgs.Numbers[aP][aI].Mark = "I"
+	}
 	return nil
 }
 
