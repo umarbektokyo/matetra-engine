@@ -274,13 +274,14 @@ func (g *Game) applyCards(vgs *model.GameState) error {
 	})
 
 	for _, entry := range entries {
-		if err := g.applyCard(vgs, entry.cardIndex); err != nil {
-			// Skip cards that fail at apply time (e.g. number became null
-			// or immune due to an earlier card in the same queue).
-			// The card is still consumed (owner set to -2 in applyCard on
-			// success), but on error we consume it here to avoid re-queuing.
-			vgs.Cards[entry.cardIndex].Owner = -2
-			vgs.Cards[entry.cardIndex].Inputs = nil
+		ci := entry.cardIndex
+		owner := vgs.Cards[ci].Owner
+		if err := g.applyCard(vgs, ci); err != nil {
+			// Card failed at apply time (e.g. divide by zero, non-integer for FTA,
+			// number became null or immune due to an earlier card).
+			// Return the card to the player's hand instead of consuming it.
+			vgs.Cards[ci].Owner = owner
+			vgs.Cards[ci].Inputs = nil
 			continue
 		}
 	}

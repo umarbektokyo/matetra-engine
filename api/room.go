@@ -4,10 +4,22 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/umarbektokyo/matetra-engine/engine"
 	"github.com/umarbektokyo/matetra-engine/model"
+)
+
+const (
+	// Time allowed to write a message to the peer.
+	writeWait = 10 * time.Second
+
+	// Time allowed to read the next pong message from the peer.
+	pongWait = 60 * time.Second
+
+	// Send pings to peer with this period. Must be less than pongWait.
+	pingPeriod = 30 * time.Second
 )
 
 type PlayerConnection struct {
@@ -75,7 +87,13 @@ func (r *Room) AddConnection(conn *websocket.Conn, hub *Hub, username, hash stri
 }
 
 func (r *Room) readMessages(connID int, pc *PlayerConnection, hub *Hub, username, hash string) {
+	// Start a ping ticker to keep the connection alive
+	ticker := time.NewTicker(pingPeriod)
+	done := make(chan struct{})
+
 	defer func() {
+		ticker.Stop()
+		close(done)
 		pc.conn.Close()
 		if pc.PlayerID >= 0 {
 			r.Game.SetPlayerOffline(pc.PlayerID)
@@ -89,6 +107,31 @@ func (r *Room) readMessages(connID int, pc *PlayerConnection, hub *Hub, username
 		if empty {
 			hub.RemoveRoom(r.Code)
 			log.Printf("[%s] room removed (empty)", r.Code)
+		}
+	}()
+
+	// Set up pong handler: reset read deadline when pong received
+	pc.conn.SetReadDeadline(time.Now().Add(pongWait))
+	pc.conn.SetPongHandler(func(string) error {
+		pc.conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+
+	// Goroutine to send periodic pings
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				pc.mu.Lock()
+				pc.conn.SetWriteDeadline(time.Now().Add(writeWait))
+				err := pc.conn.WriteMessage(websocket.PingMessage, nil)
+				pc.mu.Unlock()
+				if err != nil {
+					return
+				}
+			case <-done:
+				return
+			}
 		}
 	}()
 
@@ -236,6 +279,7 @@ func (r *Room) handleEndTurn(pc *PlayerConnection) {
 func (r *Room) sendResponse(pc *PlayerConnection, t string, data any) {
 	pc.mu.Lock()
 	defer pc.mu.Unlock()
+	pc.conn.SetWriteDeadline(time.Now().Add(writeWait))
 	pc.conn.WriteJSON(Message{Type: t, Payload: data})
 }
 
@@ -264,6 +308,7 @@ func (r *Room) BroadcastState() {
 	msg := Message{Type: "STATE_UPDATE", Payload: state}
 	for _, pc := range r.connections {
 		pc.mu.Lock()
+		pc.conn.SetWriteDeadline(time.Now().Add(writeWait))
 		pc.conn.WriteJSON(msg)
 		pc.mu.Unlock()
 	}
@@ -277,6 +322,7 @@ func (r *Room) BroadcastPreview() {
 	msg := Message{Type: "STATE_UPDATE", Payload: preview}
 	for _, pc := range r.connections {
 		pc.mu.Lock()
+		pc.conn.SetWriteDeadline(time.Now().Add(writeWait))
 		pc.conn.WriteJSON(msg)
 		pc.mu.Unlock()
 	}

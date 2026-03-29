@@ -555,6 +555,11 @@ func (m *M) onSrv(msg wsRx) (tea.Model, tea.Cmd) {
 			if m.pid == -1 {
 				for i, p := range gs.Players { if p.Name == m.user { m.pid = i } }
 			}
+			// Cancel play mode if active — state change may invalidate card indices
+			if m.gm == gmPlay {
+				m.gm = gmNormal
+				m.errMsg = ""
+			}
 		}
 
 	case "REPLY":
@@ -1040,6 +1045,9 @@ func rNum(n model.Number, idx int, hl bool) string {
 	case "F":
 		if hl { return sNumHl.Render("["+s+"]") }
 		return sFib.Render("[" + s + " F]")
+	case "FI":
+		if hl { return sNumHl.Render("["+s+"]") }
+		return sImm.Render("[" + s + " FI]")
 	default:
 		if hl { return sNumHl.Render("["+s+"]") }
 		return sNum.Render("[" + s + "]")
@@ -1106,6 +1114,7 @@ func userInputDesc(req string) string {
 				switch req[i-1] {
 				case 'A': parts = append(parts, "target's slot (0-4)")
 				case 'U': parts = append(parts, "your slot (0-4)")
+				case 'p': parts = append(parts, "player's slot (0-4)")
 				default:  parts = append(parts, "slot (0-4)")
 				}
 			} else {
@@ -1140,23 +1149,57 @@ func (m M) highlight() (int, int) {
 	c := m.pReq[ri]
 
 	if c == 'n' {
-		// Find which player this 'n' belongs to by looking at the preceding A or U
+		// Find which player this 'n' belongs to by looking at the preceding A, U, or p
 		for prev := ri - 1; prev >= 0; prev-- {
-			if m.pReq[prev] == 'A' || m.pReq[prev] == 'U' || m.pReq[prev] == 'p' {
+			if m.pReq[prev] == 'A' || m.pReq[prev] == 'U' {
 				playerVal := m.pAuto[prev]
 				if playerVal >= 0 && playerVal < len(m.gs.Players) {
-					// If user typed a specific slot, highlight it
 					val, err := strconv.Atoi(strings.TrimSpace(m.pFields[m.pFocus].Value()))
 					if err == nil && val >= 0 && val <= 4 {
 						return playerVal, val
 					}
-					return playerVal, -1 // highlight whole player
+					return playerVal, -1
+				}
+				break
+			}
+			if m.pReq[prev] == 'p' {
+				// 'p' is user-filled — find its field value
+				playerVal := m.resolvePlayerInput(prev)
+				if playerVal >= 0 && playerVal < len(m.gs.Players) {
+					val, err := strconv.Atoi(strings.TrimSpace(m.pFields[m.pFocus].Value()))
+					if err == nil && val >= 0 && val <= 4 {
+						return playerVal, val
+					}
+					return playerVal, -1
 				}
 				break
 			}
 		}
 	}
+
+	if c == 'p' {
+		// Highlighting: when focused on a player field, show which player is selected
+		playerVal := m.resolvePlayerInput(ri)
+		if playerVal >= 0 && playerVal < len(m.gs.Players) {
+			return playerVal, -1
+		}
+	}
+
 	return -1, -1
+}
+
+// resolvePlayerInput finds the typed value for a 'p' input at position ri
+func (m M) resolvePlayerInput(ri int) int {
+	for fi, idx := range m.pUserIdx {
+		if idx == ri && fi < len(m.pFields) {
+			v, err := strconv.Atoi(strings.TrimSpace(m.pFields[fi].Value()))
+			if err == nil {
+				return v
+			}
+			return -1
+		}
+	}
+	return -1
 }
 
 // ━━ Formulas ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1188,9 +1231,9 @@ func cardFormulaStatic(method, req string) string {
 	case "SIGMANOTATION":     return "sum all numbers of a player into one"
 	case "PRODUCTNOTATION":   return "multiply all numbers of a player into one"
 	case "PYTHAGOREANTHEOREM":return "target[a] = sqrt(target[a]^2 + yours[b]^2)"
-	case "ELEMENTCOMMUTATIVE":return "swap target[a] with target[b]"
+	case "ELEMENTCOMMUTATIVE":return "swap player1[a] with player2[b]"
 	case "ELEMENTCLOSURE":    return "target[a] becomes immune for 1 turn"
-	case "ELEMENTDISTRIBUTIVE":return "copy target[a] to all other players"
+	case "ELEMENTDISTRIBUTIVE":return "copy player[a] to all other players"
 	case "ELEMENTIDENTITY":   return "does nothing (adds 0 or multiplies by 1)"
 	case "PASCALTRIANGLE":    return "collapse adjacent numbers into their sum"
 	case "FUNDAMENTALTHEOREMOFARITHMETIC": return "decompose target[a] into prime factors"
@@ -1289,7 +1332,7 @@ func slotLabel(req string, ri int, auto []int, gs *model.GameState) string {
 	if req[ri] != 'n' {
 		return reqLabel(req[ri])
 	}
-	// Find the preceding player (A or U) to give context
+	// Find the preceding player (A, U, or p) to give context
 	for prev := ri - 1; prev >= 0; prev-- {
 		if req[prev] == 'A' {
 			if auto[prev] >= 0 && auto[prev] < len(gs.Players) {
@@ -1299,6 +1342,9 @@ func slotLabel(req string, ri int, auto []int, gs *model.GameState) string {
 		}
 		if req[prev] == 'U' {
 			return "your slot"
+		}
+		if req[prev] == 'p' {
+			return "player's slot"
 		}
 	}
 	return "slot"

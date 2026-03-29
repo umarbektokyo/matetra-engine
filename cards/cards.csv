@@ -25,15 +25,15 @@ Second Order Polynomial,ad^2+bd+c,Compute a*d^2 + b*d + c where d is a dice roll
 First Order Polynomial,ad+b,Compute a*d + b where d is a dice roll. Consumes b.,Function,POLYNOMIAL1,AnUnd,1,Core3,5
 Identity Element,,Add 0 or multiply by 1. A reminder that some operations change nothing.,Theorem,ELEMENTIDENTITY,An,1,Core,5
 Closure Element,,Make one number immune from all cards for one turn. Protection!,Theorem,ELEMENTCLOSURE,An,1,Core,5
-Distributive Element,,Select a number and duplicate it into every other player's set.,Theorem,ELEMENTDISTRIBUTIVE,An,1,Core,5
-Commutative Element,,Swap any two numbers on the table between any players.,Theorem,ELEMENTCOMMUTATIVE,AnAn,1,Core,5
+Distributive Element,,Select a number from any player and duplicate it into every other player's set.,Theorem,ELEMENTDISTRIBUTIVE,pn,1,Core,5
+Commutative Element,,Swap any two numbers on the table between any players.,Theorem,ELEMENTCOMMUTATIVE,pnpn,1,Core,5
 Pascal's Triangle,,"Choose a number and collapse its contiguous group (island) into their sum. Adjacent non-empty numbers merge.",Theorem,PASCALTRIANGLE,An,1,Core,5
 Pythagorean Theorem,sqrt[a^2+b^2],Compute the hypotenuse of two numbers. The source is consumed.,Theorem,PYTHAGOREANTHEOREM,AnUn,1,Core,5
 Fundamental Theorem of Arithmetic,,Decompose an integer into its prime factors. Each factor fills a slot.,Theorem,FUNDAMENTALTHEOREMOFARITHMETIC,An,1,Core,5
 Euler's Number,e ~= 2.72,Place Euler's number (e ~= 2.718) into your set.,Constant,CONSTE,,1,Core,5
 Negative One,-1,Place -1 into your set. Small but mighty.,Constant,CONSTN1,,1,Core,5
 Sheldon's Number,73,The best number! If 73 is already in your set you get 73; otherwise you get 12.,Constant,CONST73,,1,Core,5
-Googol,10,Place 10 into your set OR steal a power-of-10 number from the table.,Constant,CONSTGOOGLE,An,1,Core,5
+Googol,10,Place 10 into your set OR steal a power-of-10 number from another player.,Constant,CONSTGOOGLE,pn,1,Core,5
 The Answer,42,The answer to life the universe and everything. Place 42 into your set.,Constant,CONST42,,1,Core,5
 Phi,phi ~= 1.62,Place the golden ratio (phi ~= 1.618) into your set.,Constant,CONSTPHI,,1,Core,5
 Zero,0,Place 0 into your set. It's nothing but it's honest work.,Constant,CONSTZERO,,1,Core,5

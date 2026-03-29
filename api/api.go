@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -257,9 +259,56 @@ func handleWS(w http.ResponseWriter, r *http.Request, hub *Hub) {
 }
 
 func handleRoomSelection(conn *websocket.Conn, hub *Hub, username, hash string) {
+	// Set up keepalive for room selection phase (can idle here waiting for user input)
+	ticker := time.NewTicker(pingPeriod)
+	done := make(chan struct{})
+	var mu sync.Mutex
+
+	// stopKeepalive stops the ping goroutine and waits for any in-flight write to finish.
+	// Must be called before handing the connection to a room (which starts its own keepalive).
+	stopped := false
+	stopKeepalive := func() {
+		if stopped {
+			return
+		}
+		stopped = true
+		ticker.Stop()
+		close(done)
+		mu.Lock()
+		// nolint: wait for any in-flight ping write to finish before handoff
+		mu.Unlock()
+		// Clear deadlines so readMessages can set its own
+		conn.SetReadDeadline(time.Time{})
+		conn.SetWriteDeadline(time.Time{})
+	}
+
+	conn.SetReadDeadline(time.Now().Add(pongWait))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				mu.Lock()
+				conn.SetWriteDeadline(time.Now().Add(writeWait))
+				err := conn.WriteMessage(websocket.PingMessage, nil)
+				mu.Unlock()
+				if err != nil {
+					return
+				}
+			case <-done:
+				return
+			}
+		}
+	}()
+
 	for {
 		var msg Message
 		if err := conn.ReadJSON(&msg); err != nil {
+			stopKeepalive()
 			conn.Close()
 			return
 		}
@@ -268,38 +317,52 @@ func handleRoomSelection(conn *websocket.Conn, hub *Hub, username, hash string) 
 		case "CREATE_ROOM":
 			var p CreateRoomPayload
 			if err := decodePayload(msg.Payload, &p); err != nil {
+				mu.Lock()
 				writeError(conn, "invalid create room payload")
+				mu.Unlock()
 				continue
 			}
 			room := hub.CreateRoom(p)
 			room.hub = hub
+			mu.Lock()
 			conn.WriteJSON(Message{
 				Type:    "ROOM_CREATED",
 				Payload: map[string]string{"code": room.Code},
 			})
+			mu.Unlock()
+			stopKeepalive()
 			room.AddConnection(conn, hub, username, hash)
 			return
 
 		case "JOIN_ROOM":
 			var p JoinPayload
 			if err := decodePayload(msg.Payload, &p); err != nil {
+				mu.Lock()
 				writeError(conn, "invalid join payload")
+				mu.Unlock()
 				continue
 			}
 			room := hub.GetRoom(p.Code)
 			if room == nil {
+				mu.Lock()
 				writeError(conn, "room not found: "+p.Code)
+				mu.Unlock()
 				continue
 			}
+			mu.Lock()
 			conn.WriteJSON(Message{
 				Type:    "JOINED",
 				Payload: map[string]string{"code": room.Code},
 			})
+			mu.Unlock()
+			stopKeepalive()
 			room.AddConnection(conn, hub, username, hash)
 			return
 
 		default:
+			mu.Lock()
 			writeError(conn, "expected CREATE_ROOM or JOIN_ROOM")
+			mu.Unlock()
 		}
 	}
 }

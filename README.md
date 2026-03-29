@@ -62,7 +62,7 @@ Each turn, one player is the **defender**. During their turn:
 |------|-------------|
 | **Function** | Mathematical operations: add, subtract, multiply, divide, sqrt, log, sin, cos, etc. |
 | **Constant** | Place a value into your set: pi, e, 42, fibonacci, etc. |
-| **Theorem** | Special effects: swap numbers, grant immunity, decompose into primes, etc. |
+| **Theorem** | Special effects: swap numbers between any players, grant immunity, collapse adjacent numbers, decompose into primes, etc. |
 
 ### Win Conditions
 
@@ -82,7 +82,7 @@ Each turn, one player is the **defender**. During their turn:
 | `:` | Command mode |
 | `ctrl+c` | Quit |
 
-When playing a card, target player and dice values are auto-filled. You only pick which number slots to use.
+When playing a card, the defender and dice values are auto-filled. You pick number slots (0-4). Some cards (like Googol, Commutative, Distributive) also ask you to pick a target player ID.
 
 ## Architecture
 
@@ -110,6 +110,7 @@ Numbers use scientific notation internally (`Value * 10^Base`) to handle very la
 - `GET /ws?token=...` — WebSocket connection (auto-rejoins existing game)
 - All game actions happen over WebSocket messages
 - Server broadcasts preview state (queued cards applied virtually) to all players
+- Server sends WebSocket pings every 30s to keep connections alive through proxies/load balancers
 
 ## Configuration
 

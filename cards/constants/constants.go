@@ -15,14 +15,21 @@ func AddConstant(vgs *model.GameState, player int, value model.Number) error {
 		}
 	}
 
-	// Replace smallest value
-	minIdx := 0
-	for i := 1; i < len(vgs.Numbers[player]); i++ {
-		if vgs.Numbers[player][i].Cmp(vgs.Numbers[player][minIdx]) < 0 {
+	// Replace smallest non-immune value
+	minIdx := -1
+	for i := range vgs.Numbers[player] {
+		mark := vgs.Numbers[player][i].Mark
+		if mark == "I" || mark == "FI" {
+			continue // never overwrite immune numbers
+		}
+		if minIdx == -1 || vgs.Numbers[player][i].Cmp(vgs.Numbers[player][minIdx]) < 0 {
 			minIdx = i
 		}
 	}
 
+	if minIdx == -1 {
+		return fmt.Errorf("all slots are immune")
+	}
 	vgs.Numbers[player][minIdx] = value
 	return nil
 }
@@ -70,15 +77,20 @@ func CONST73(vgs *model.GameState, card *model.Card) error {
 }
 
 func CONSTGOOGLE(vgs *model.GameState, card *model.Card) error {
-	attackedPlayer := card.Inputs[0]
-	attackedIndex := card.Inputs[1]
+	targetPlayer := card.Inputs[0]
+	targetIndex := card.Inputs[1]
 
-	if attackedPlayer >= 0 &&
-		attackedPlayer < len(vgs.Numbers) &&
-		attackedIndex >= 0 &&
-		attackedIndex < len(vgs.Numbers[attackedPlayer]) {
+	// Cannot steal from yourself
+	if targetPlayer == card.Owner {
+		return AddConstant(vgs, card.Owner, model.NumFromFloat(10))
+	}
 
-		num := &vgs.Numbers[attackedPlayer][attackedIndex]
+	if targetPlayer >= 0 &&
+		targetPlayer < len(vgs.Numbers) &&
+		targetIndex >= 0 &&
+		targetIndex < len(vgs.Numbers[targetPlayer]) {
+
+		num := &vgs.Numbers[targetPlayer][targetIndex]
 
 		if !num.IsNull() && !num.IsZero() {
 			f := num.ToFloat64()

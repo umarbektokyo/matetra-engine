@@ -33,7 +33,7 @@ func ELEMENTCLOSURE(vgs *model.GameState, card *model.Card) error {
 	return nil
 }
 
-// Input: An
+// Input: pn
 func ELEMENTDISTRIBUTIVE(vgs *model.GameState, card *model.Card) error {
 	aP, aI := card.Inputs[0], card.Inputs[1]
 	if err := utils.CheckCardMark(vgs, aP, aI); err != nil {
@@ -53,7 +53,7 @@ func ELEMENTDISTRIBUTIVE(vgs *model.GameState, card *model.Card) error {
 	return nil
 }
 
-// Input: AnAn
+// Input: pnpn
 func ELEMENTCOMMUTATIVE(vgs *model.GameState, card *model.Card) error {
 	p1, i1 := card.Inputs[0], card.Inputs[1]
 	p2, i2 := card.Inputs[2], card.Inputs[3]
@@ -125,16 +125,35 @@ func PASCALTRIANGLE(vgs *model.GameState, card *model.Card) error {
 
 	nums := vgs.Numbers[player]
 
-	// Collapse island: sum all into leftmost
+	// Collapse island: sum all non-immune numbers into the leftmost non-immune slot.
+	// Immune numbers ("I" or "FI") are left untouched.
 	sum := model.Number{Value: 0, Base: 0}
+	destIdx := -1
+	collapsible := 0
 	for i := L; i <= R; i++ {
+		mark := nums[i].Mark
+		if mark == "I" || mark == "FI" {
+			continue // skip immune numbers
+		}
 		sum = model.NumAdd(sum, model.Number{Value: nums[i].Value, Base: nums[i].Base})
+		if destIdx == -1 {
+			destIdx = i
+		}
+		collapsible++
 	}
 
-	nums[L].Value = sum.Value
-	nums[L].Base = sum.Base
+	if destIdx == -1 || collapsible < 2 {
+		return fmt.Errorf("not enough non-immune numbers to collapse")
+	}
 
-	for i := L + 1; i <= R; i++ {
+	nums[destIdx].Value = sum.Value
+	nums[destIdx].Base = sum.Base
+
+	for i := L; i <= R; i++ {
+		mark := nums[i].Mark
+		if mark == "I" || mark == "FI" || i == destIdx {
+			continue
+		}
 		nums[i].Value = 0
 		nums[i].Base = 0
 		nums[i].Mark = "n"

@@ -254,18 +254,25 @@ func SIGMANOTATION(vgs *model.GameState, card *model.Card) error {
 	if player < 0 || player >= len(vgs.Numbers) { return fmt.Errorf("player out of range") }
 	numbers := vgs.Numbers[player]
 
+	// Find first non-null, non-immune number as destination
 	dest := -1
 	for i := range numbers {
-		if numbers[i].Mark != "n" { dest = i; break }
+		mark := numbers[i].Mark
+		if mark != "n" && mark != "I" && mark != "FI" {
+			dest = i
+			break
+		}
 	}
-	if dest == -1 { return fmt.Errorf("no numbers to sum") }
+	if dest == -1 { return fmt.Errorf("no non-immune numbers to sum") }
 
 	sum := model.Number{Value: 0, Base: 0}
 	for i := range numbers {
-		if numbers[i].Mark != "n" {
-			sum = model.NumAdd(sum, model.Number{Value: numbers[i].Value, Base: numbers[i].Base})
-			if i != dest { nullOut(&numbers[i]) }
+		mark := numbers[i].Mark
+		if mark == "n" || mark == "I" || mark == "FI" {
+			continue // skip null and immune numbers
 		}
+		sum = model.NumAdd(sum, model.Number{Value: numbers[i].Value, Base: numbers[i].Base})
+		if i != dest { nullOut(&numbers[i]) }
 	}
 	if err := sum.Sanitize(); err != nil { return err }
 	numbers[dest].Value = sum.Value
@@ -280,18 +287,25 @@ func PRODUCTNOTATION(vgs *model.GameState, card *model.Card) error {
 	if player < 0 || player >= len(vgs.Numbers) { return fmt.Errorf("player out of range") }
 	numbers := vgs.Numbers[player]
 
+	// Find first non-null, non-immune number as destination
 	dest := -1
 	for i := range numbers {
-		if numbers[i].Mark != "n" { dest = i; break }
+		mark := numbers[i].Mark
+		if mark != "n" && mark != "I" && mark != "FI" {
+			dest = i
+			break
+		}
 	}
-	if dest == -1 { return fmt.Errorf("no numbers to multiply") }
+	if dest == -1 { return fmt.Errorf("no non-immune numbers to multiply") }
 
 	product := model.NumFromFloat(1)
 	for i := range numbers {
-		if numbers[i].Mark != "n" {
-			product = model.NumMul(product, model.Number{Value: numbers[i].Value, Base: numbers[i].Base})
-			if i != dest { nullOut(&numbers[i]) }
+		mark := numbers[i].Mark
+		if mark == "n" || mark == "I" || mark == "FI" {
+			continue // skip null and immune numbers
 		}
+		product = model.NumMul(product, model.Number{Value: numbers[i].Value, Base: numbers[i].Base})
+		if i != dest { nullOut(&numbers[i]) }
 	}
 	if err := product.Sanitize(); err != nil { return err }
 	numbers[dest].Value = product.Value
